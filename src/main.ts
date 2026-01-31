@@ -1,6 +1,7 @@
 import { Notice, Plugin } from 'obsidian'
 import type { FitAssistentSettings, SyncResult, SyncState } from './types'
 import { DEFAULT_SETTINGS, DEFAULT_SYNC_STATE } from './constants'
+import { initLocale, t } from './i18n'
 import {
   destroyClient,
   getCurrentUserId,
@@ -34,6 +35,9 @@ export default class FitAssistentPlugin extends Plugin {
   private statusBarEl: HTMLElement | null = null
 
   async onload(): Promise<void> {
+    // Detect locale from Obsidian's language setting
+    initLocale((this.app as unknown as { locale: string }).locale)
+
     await this.loadSettings()
 
     // Initialize sync state manager
@@ -56,7 +60,7 @@ export default class FitAssistentPlugin extends Plugin {
     // Status bar
     if (this.settings.showStatusBar) {
       this.statusBarEl = this.addStatusBarItem()
-      this.updateStatusBar('Nicht verbunden')
+      this.updateStatusBar(t('connection.disconnected'))
     }
 
     // Settings tab
@@ -65,13 +69,13 @@ export default class FitAssistentPlugin extends Plugin {
     // Commands
     this.addCommand({
       id: 'full-sync',
-      name: 'Vollständige Synchronisation',
+      name: t('cmd.full_sync'),
       callback: async () => {
         if (!this.isConnected) {
-          new Notice('FitAssistent: Bitte zuerst anmelden')
+          new Notice(`FitAssistent: ${t('notice.please_sign_in')}`)
           return
         }
-        new Notice('FitAssistent: Sync gestartet...')
+        new Notice(`FitAssistent: ${t('sync.started')}`)
         const result = await this.runFullSync()
         this.notifySyncResult(result)
       },
@@ -79,10 +83,10 @@ export default class FitAssistentPlugin extends Plugin {
 
     this.addCommand({
       id: 'incremental-sync',
-      name: 'Inkrementelle Synchronisation',
+      name: t('cmd.incremental_sync'),
       callback: async () => {
         if (!this.isConnected) {
-          new Notice('FitAssistent: Bitte zuerst anmelden')
+          new Notice(`FitAssistent: ${t('notice.please_sign_in')}`)
           return
         }
         const result = await this.runIncrementalSync()
@@ -97,7 +101,6 @@ export default class FitAssistentPlugin extends Plugin {
       this.settings.email &&
       this.settings.password
     ) {
-      // Delay to avoid blocking startup
       setTimeout(() => this.connect(), 2000)
     }
   }
@@ -120,7 +123,6 @@ export default class FitAssistentPlugin extends Plugin {
     data.settings = this.settings
     await this.saveData(data)
 
-    // Update dependent services
     this.vaultManager?.updateSettings(this.settings)
     this.syncEngine?.updateSettings(this.settings)
   }
@@ -131,10 +133,10 @@ export default class FitAssistentPlugin extends Plugin {
     const { supabaseUrl, supabaseAnonKey, email, password } = this.settings
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return { success: false, error: 'Supabase URL und Key erforderlich' }
+      return { success: false, error: t('auth.url_key_required') }
     }
     if (!email || !password) {
-      return { success: false, error: 'E-Mail und Passwort erforderlich' }
+      return { success: false, error: t('auth.email_password_required') }
     }
 
     try {
@@ -143,7 +145,7 @@ export default class FitAssistentPlugin extends Plugin {
 
       if ('error' in result) {
         this.isConnected = false
-        this.updateStatusBar('Verbindungsfehler')
+        this.updateStatusBar(t('connection.error'))
         return { success: false, error: result.error }
       }
 
@@ -156,9 +158,8 @@ export default class FitAssistentPlugin extends Plugin {
       )
 
       this.isConnected = true
-      this.updateStatusBar('Verbunden')
+      this.updateStatusBar(t('connection.connected'))
 
-      // Create folder structure
       await createFolderStructure(this.app.vault, this.settings.basePath, {
         recipes: this.settings.recipesFolder,
         tracker: this.settings.trackerFolder,
@@ -167,7 +168,6 @@ export default class FitAssistentPlugin extends Plugin {
         lists: this.settings.listsFolder,
       })
 
-      // Start auto-sync and realtime
       this.setupAutoSync()
       if (this.settings.realtimeEnabled) {
         this.startRealtime()
@@ -176,7 +176,7 @@ export default class FitAssistentPlugin extends Plugin {
       return { success: true }
     } catch (e) {
       this.isConnected = false
-      this.updateStatusBar('Fehler')
+      this.updateStatusBar(t('notice.error'))
       const msg = e instanceof Error ? e.message : String(e)
       return { success: false, error: msg }
     }
@@ -198,7 +198,7 @@ export default class FitAssistentPlugin extends Plugin {
     this.dataService = null
     this.syncEngine = null!
     this.isConnected = false
-    this.updateStatusBar('Nicht verbunden')
+    this.updateStatusBar(t('connection.disconnected'))
   }
 
   // --- Sync Operations ---
@@ -213,7 +213,7 @@ export default class FitAssistentPlugin extends Plugin {
           {
             table: 'sync_engine',
             itemId: 'init',
-            message: 'Nicht verbunden',
+            message: t('notice.not_connected'),
             timestamp: Date.now(),
           },
         ],
@@ -221,21 +221,23 @@ export default class FitAssistentPlugin extends Plugin {
       }
     }
 
-    this.updateStatusBar('Synchronisiere...')
+    this.updateStatusBar(t('sync.syncing'))
     try {
       const result = await this.syncEngine.fullSync((msg) => {
         this.updateStatusBar(msg)
       })
 
       if (result.success) {
-        this.updateStatusBar('Sync OK')
+        this.updateStatusBar(t('sync.ok'))
       } else {
-        this.updateStatusBar(`Sync: ${result.errors.length} Fehler`)
+        this.updateStatusBar(
+          `Sync: ${result.errors.length} ${t('notice.error')}`,
+        )
       }
 
       return result
     } catch (e) {
-      this.updateStatusBar('Sync Fehler')
+      this.updateStatusBar(t('sync.error'))
       throw e
     }
   }
@@ -250,7 +252,7 @@ export default class FitAssistentPlugin extends Plugin {
           {
             table: 'sync_engine',
             itemId: 'init',
-            message: 'Nicht verbunden',
+            message: t('notice.not_connected'),
             timestamp: Date.now(),
           },
         ],
@@ -265,14 +267,16 @@ export default class FitAssistentPlugin extends Plugin {
       })
 
       if (result.success) {
-        this.updateStatusBar('Sync OK')
+        this.updateStatusBar(t('sync.ok'))
       } else {
-        this.updateStatusBar(`${result.errors.length} Fehler`)
+        this.updateStatusBar(
+          `${result.errors.length} ${t('notice.error')}`,
+        )
       }
 
       return result
     } catch (e) {
-      this.updateStatusBar('Sync Fehler')
+      this.updateStatusBar(t('sync.error'))
       throw e
     }
   }
@@ -347,11 +351,11 @@ export default class FitAssistentPlugin extends Plugin {
   private notifySyncResult(result: SyncResult): void {
     if (result.success) {
       new Notice(
-        `FitAssistent: Sync OK (${result.filesCreated + result.filesUpdated} Dateien)`,
+        `FitAssistent: ${t('notice.sync_ok', { count: result.filesCreated + result.filesUpdated })}`,
       )
     } else {
       new Notice(
-        `FitAssistent: ${result.errors.length} Fehler beim Sync`,
+        `FitAssistent: ${t('notice.sync_errors', { count: result.errors.length })}`,
       )
     }
   }

@@ -1,4 +1,5 @@
 import type { DataService } from '../api/data-service'
+import { t } from '../i18n'
 import type {
   FitAssistentSettings,
   Medication,
@@ -55,7 +56,7 @@ export class SyncEngine {
     try {
       // 1. Load profile (needed for daily notes goal comparison)
       if (this.settings.syncProfile) {
-        onProgress?.('Profil laden...')
+        onProgress?.(t('progress.profile'))
         try {
           this.profile = await this.dataService.getProfile()
           if (this.profile) {
@@ -71,7 +72,7 @@ export class SyncEngine {
 
       // 2. Load medications (needed for medication log name lookup)
       if (this.settings.syncMedications) {
-        onProgress?.('Medikamente laden...')
+        onProgress?.(t('progress.medications'))
         try {
           const medications = await this.dataService.getMedications()
           this.medicationMap.clear()
@@ -89,7 +90,7 @@ export class SyncEngine {
 
       // 3. Recipes
       if (this.settings.syncRecipes) {
-        onProgress?.('Rezepte synchronisieren...')
+        onProgress?.(t('progress.recipes'))
         try {
           const recipes = await this.dataService.getRecipes()
           this.recipeMap.clear()
@@ -111,7 +112,7 @@ export class SyncEngine {
 
       // 4. Mealprep Plans
       if (this.settings.syncMealprep) {
-        onProgress?.('Mealprep-Pläne synchronisieren...')
+        onProgress?.(t('progress.mealprep'))
         try {
           const plans = await this.dataService.getMealprepPlans()
           for (const plan of plans) {
@@ -131,7 +132,7 @@ export class SyncEngine {
 
       // 5. Inventory
       if (this.settings.syncInventory) {
-        onProgress?.('Inventar synchronisieren...')
+        onProgress?.(t('progress.inventory'))
         try {
           const items = await this.dataService.getInventoryItems()
           const content = renderInventory(items)
@@ -145,7 +146,7 @@ export class SyncEngine {
 
       // 6. Shopping List
       if (this.settings.syncShoppingList) {
-        onProgress?.('Einkaufsliste synchronisieren...')
+        onProgress?.(t('progress.shopping'))
         try {
           const items = await this.dataService.getShoppingItems()
           const content = renderShoppingList(items)
@@ -158,7 +159,7 @@ export class SyncEngine {
       }
 
       // 7. Daily Notes (aggregate meals + water + weight + med-logs + BP)
-      onProgress?.('Tagesnotizen synchronisieren...')
+      onProgress?.(t('progress.daily_notes'))
       try {
         const dates = await this.dataService.getAllTrackedDates()
 
@@ -229,7 +230,7 @@ export class SyncEngine {
 
       // Profile
       if (this.settings.syncProfile) {
-        onProgress?.('Profil prüfen...')
+        onProgress?.(t('progress.check_profile'))
         try {
           this.profile = await this.dataService.getProfile()
           if (this.profile) {
@@ -244,7 +245,7 @@ export class SyncEngine {
 
       // Medications
       if (this.settings.syncMedications) {
-        onProgress?.('Medikamente prüfen...')
+        onProgress?.(t('progress.check_medications'))
         try {
           const medications = await this.dataService.getMedications()
           this.medicationMap.clear()
@@ -261,7 +262,7 @@ export class SyncEngine {
 
       // Recipes (incremental)
       if (this.settings.syncRecipes) {
-        onProgress?.('Neue Rezepte prüfen...')
+        onProgress?.(t('progress.check_recipes'))
         const since = this.syncState.getLastSync('recipes')
         try {
           const recipes = await this.dataService.getRecipes(since ?? undefined)
@@ -284,7 +285,7 @@ export class SyncEngine {
 
       // Mealprep Plans (incremental)
       if (this.settings.syncMealprep) {
-        onProgress?.('Mealprep-Pläne prüfen...')
+        onProgress?.(t('progress.check_mealprep'))
         const since = this.syncState.getLastSync('mealprep_plans')
         try {
           const plans = await this.dataService.getMealprepPlans(
@@ -308,7 +309,7 @@ export class SyncEngine {
 
       // Inventory (always full refresh since it's aggregated)
       if (this.settings.syncInventory) {
-        onProgress?.('Inventar prüfen...')
+        onProgress?.(t('progress.check_inventory'))
         try {
           const items = await this.dataService.getInventoryItems()
           const content = renderInventory(items)
@@ -321,7 +322,7 @@ export class SyncEngine {
 
       // Shopping List (always full refresh since it's aggregated)
       if (this.settings.syncShoppingList) {
-        onProgress?.('Einkaufsliste prüfen...')
+        onProgress?.(t('progress.check_shopping'))
         try {
           const items = await this.dataService.getShoppingItems()
           const content = renderShoppingList(items)
@@ -333,7 +334,7 @@ export class SyncEngine {
       }
 
       // Daily Notes (incremental)
-      onProgress?.('Neue Tagesnotizen prüfen...')
+      onProgress?.(t('progress.check_daily'))
       const dailySince = Math.min(
         this.syncState.getLastSync('meals') ?? 0,
         this.syncState.getLastSync('water_logs') ?? 0,
