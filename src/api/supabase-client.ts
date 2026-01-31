@@ -42,7 +42,14 @@ function obsidianFetch(
     throw: false,
   }).then((response) => {
     const responseHeaders = new Headers(response.headers)
-    return new Response(JSON.stringify(response.json), {
+    // Use response.text instead of response.json to avoid throwing on non-JSON
+    let responseBody: string
+    try {
+      responseBody = JSON.stringify(response.json)
+    } catch {
+      responseBody = response.text
+    }
+    return new Response(responseBody, {
       status: response.status,
       headers: responseHeaders,
     })
@@ -79,39 +86,58 @@ export function getSupabaseClient(
 }
 
 /**
- * Authenticate via PAT: calls the validate-pat edge function
- * and returns a short-lived JWT.
+ * Authenticate via PAT: calls the validate-pat edge function directly
+ * via requestUrl (bypasses Supabase client for better error handling).
  */
 export async function authenticateWithPat(
   url: string,
   anonKey: string,
   tokenSecret: string,
 ): Promise<{ access_token: string; expires_at: number } | { error: string }> {
-  const client = getSupabaseClient(url, anonKey)
+  const functionsUrl = `${url}/functions/v1/main`
 
-  const { data, error } = await client.functions.invoke('main', {
-    body: { action: 'validate-pat', token: tokenSecret },
-  })
+  try {
+    const response = await requestUrl({
+      url: functionsUrl,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${anonKey}`,
+        apikey: anonKey,
+      },
+      body: JSON.stringify({ action: 'validate-pat', token: tokenSecret }),
+      throw: false,
+    })
 
-  if (error) {
-    return { error: error.message }
-  }
+    let data: Record<string, unknown>
+    try {
+      data = response.json
+    } catch {
+      return { error: `Edge Function returned non-JSON (HTTP ${response.status}): ${response.text.slice(0, 200)}` }
+    }
 
-  if (data?.error) {
-    const errorCode = data.error as string
-    if (errorCode === 'INVALID_TOKEN') return { error: t('connection.invalid_token') }
-    if (errorCode === 'TOKEN_REVOKED') return { error: t('connection.token_revoked') }
-    if (errorCode === 'TOKEN_EXPIRED') return { error: t('connection.token_expired') }
-    return { error: errorCode }
-  }
+    if (response.status !== 200) {
+      const errorCode = (data?.error as string) ?? `HTTP ${response.status}`
+      if (errorCode === 'INVALID_TOKEN')
+        return { error: t('connection.invalid_token') }
+      if (errorCode === 'TOKEN_REVOKED')
+        return { error: t('connection.token_revoked') }
+      if (errorCode === 'TOKEN_EXPIRED')
+        return { error: t('connection.token_expired') }
+      return { error: errorCode }
+    }
 
-  if (!data?.access_token) {
-    return { error: t('auth.no_user') }
-  }
+    if (!data?.access_token) {
+      return { error: t('auth.no_user') }
+    }
 
-  return {
-    access_token: data.access_token as string,
-    expires_at: data.expires_at as number,
+    return {
+      access_token: data.access_token as string,
+      expires_at: data.expires_at as number,
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    return { error: `${t('connection.error')}: ${msg}` }
   }
 }
 
