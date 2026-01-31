@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { t } from '../i18n'
 import type {
   BloodPressureLog,
   DailyData,
@@ -34,7 +35,7 @@ export class DataService {
     }
 
     const { data, error } = await query
-    if (error) throw new Error(`Rezepte laden fehlgeschlagen: ${error.message}`)
+    if (error) throw new Error(`${t('data.recipes_failed')}: ${error.message}`)
     return (data ?? []) as Recipe[]
   }
 
@@ -63,7 +64,7 @@ export class DataService {
 
     const { data, error } = await query
     if (error)
-      throw new Error(`Mahlzeiten laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.meals_failed')}: ${error.message}`)
     return (data ?? []) as Meal[]
   }
 
@@ -92,7 +93,7 @@ export class DataService {
 
     const { data, error } = await query
     if (error)
-      throw new Error(`Wasser-Logs laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.water_failed')}: ${error.message}`)
     return (data ?? []) as WaterLog[]
   }
 
@@ -121,7 +122,7 @@ export class DataService {
 
     const { data, error } = await query
     if (error)
-      throw new Error(`Gewichts-Logs laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.weight_failed')}: ${error.message}`)
     return (data ?? []) as WeightLog[]
   }
 
@@ -150,7 +151,7 @@ export class DataService {
 
     const { data, error } = await query
     if (error)
-      throw new Error(`Mealprep-Pläne laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.mealprep_failed')}: ${error.message}`)
     return (data ?? []) as MealPrepPlan[]
   }
 
@@ -175,7 +176,7 @@ export class DataService {
       .order('name', { ascending: true })
 
     if (error)
-      throw new Error(`Inventar laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.inventory_failed')}: ${error.message}`)
     return (data ?? []) as InventoryItem[]
   }
 
@@ -188,7 +189,7 @@ export class DataService {
       .order('name', { ascending: true })
 
     if (error)
-      throw new Error(`Medikamente laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.medications_failed')}: ${error.message}`)
 
     return ((data ?? []) as Medication[]).map((med) => ({
       ...med,
@@ -210,7 +211,7 @@ export class DataService {
 
     const { data, error } = await query
     if (error)
-      throw new Error(`Medikamenten-Logs laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.medication_logs_failed')}: ${error.message}`)
     return (data ?? []) as MedicationLog[]
   }
 
@@ -239,7 +240,7 @@ export class DataService {
 
     const { data, error } = await query
     if (error)
-      throw new Error(`Blutdruck-Logs laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.blood_pressure_failed')}: ${error.message}`)
     return (data ?? []) as BloodPressureLog[]
   }
 
@@ -264,7 +265,7 @@ export class DataService {
       .order('category', { ascending: true })
 
     if (error)
-      throw new Error(`Einkaufsliste laden fehlgeschlagen: ${error.message}`)
+      throw new Error(`${t('data.shopping_failed')}: ${error.message}`)
     return (data ?? []) as ShoppingItem[]
   }
 

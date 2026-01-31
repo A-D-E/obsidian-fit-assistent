@@ -1,5 +1,6 @@
 import { requestUrl } from 'obsidian'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { t } from '../i18n'
 
 /**
  * Custom fetch implementation using Obsidian's requestUrl to bypass CORS.
@@ -95,7 +96,7 @@ export async function signIn(
   }
 
   if (!data.user) {
-    return { error: 'Kein Benutzer gefunden' }
+    return { error: t('auth.no_user') }
   }
 
   return { userId: data.user.id }
