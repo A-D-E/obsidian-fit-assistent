@@ -29,57 +29,49 @@ const translations: Record<string, Record<Locale, string>> = {
     de: 'Verbindung',
     en: 'Connection',
   },
-  'connection.supabase_url': {
-    de: 'Supabase URL',
-    en: 'Supabase URL',
+  'connection.token': {
+    de: 'Verbindungstoken',
+    en: 'Connection Token',
   },
-  'connection.supabase_url_desc': {
-    de: 'Die URL deiner Self-Hosted Supabase-Instanz',
-    en: 'The URL of your self-hosted Supabase instance',
+  'connection.token_desc': {
+    de: 'Token aus der FitAssistent-App (Einstellungen → API-Zugangstoken)',
+    en: 'Token from the FitAssistent app (Settings → API Access Tokens)',
   },
-  'connection.supabase_url_placeholder': {
-    de: 'https://supabase.example.com',
-    en: 'https://supabase.example.com',
+  'connection.token_placeholder': {
+    de: 'fa_...',
+    en: 'fa_...',
   },
-  'connection.anon_key': {
-    de: 'Supabase Anon Key',
-    en: 'Supabase Anon Key',
+  'connection.token_help': {
+    de: 'Generiere einen Token in der FitAssistent-App unter Einstellungen → API-Zugangstoken',
+    en: 'Generate a token in the FitAssistent app under Settings → API Access Tokens',
   },
-  'connection.anon_key_desc': {
-    de: 'Der öffentliche Anon-Key deiner Supabase-Instanz',
-    en: 'The public anon key of your Supabase instance',
+  'connection.invalid_token': {
+    de: 'Ungültiger Token',
+    en: 'Invalid token',
   },
-  'connection.email': {
-    de: 'E-Mail',
-    en: 'Email',
+  'connection.token_expired': {
+    de: 'Token abgelaufen',
+    en: 'Token expired',
   },
-  'connection.email_desc': {
-    de: 'Deine FitAssistent Login-E-Mail',
-    en: 'Your FitAssistent login email',
+  'connection.token_revoked': {
+    de: 'Token wurde widerrufen',
+    en: 'Token has been revoked',
   },
-  'connection.password': {
-    de: 'Passwort',
-    en: 'Password',
+  'connection.connect_disconnect': {
+    de: 'Verbinden / Trennen',
+    en: 'Connect / Disconnect',
   },
-  'connection.password_desc': {
-    de: 'Dein FitAssistent-Passwort',
-    en: 'Your FitAssistent password',
-  },
-  'connection.login_logout': {
-    de: 'Anmelden / Abmelden',
-    en: 'Sign In / Sign Out',
-  },
-  'connection.login_logout_desc': {
+  'connection.connect_disconnect_desc': {
     de: 'Verbindung zur FitAssistent-App herstellen',
     en: 'Connect to the FitAssistent app',
   },
-  'connection.sign_in': {
-    de: 'Anmelden',
-    en: 'Sign In',
+  'connection.connect': {
+    de: 'Verbinden',
+    en: 'Connect',
   },
-  'connection.sign_out': {
-    de: 'Abmelden',
-    en: 'Sign Out',
+  'connection.disconnect': {
+    de: 'Trennen',
+    en: 'Disconnect',
   },
   'connection.connected': {
     de: 'Verbunden',
@@ -401,13 +393,13 @@ const translations: Record<string, Record<Locale, string>> = {
     de: 'Kein Benutzer gefunden',
     en: 'No user found',
   },
-  'auth.url_key_required': {
-    de: 'Supabase URL und Key erforderlich',
-    en: 'Supabase URL and key required',
+  'auth.token_required': {
+    de: 'Verbindungstoken erforderlich',
+    en: 'Connection token required',
   },
-  'auth.email_password_required': {
-    de: 'E-Mail und Passwort erforderlich',
-    en: 'Email and password required',
+  'auth.token_invalid_format': {
+    de: 'Ungültiges Token-Format. Token muss mit "fa_" beginnen.',
+    en: 'Invalid token format. Token must start with "fa_".',
   },
 
   // --- Data Service Errors ---

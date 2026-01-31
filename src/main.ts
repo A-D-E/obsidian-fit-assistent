@@ -3,12 +3,12 @@ import type { FitAssistentSettings, SyncResult, SyncState } from './types'
 import { DEFAULT_SETTINGS, DEFAULT_SYNC_STATE } from './constants'
 import { initLocale, t } from './i18n'
 import {
+  authenticateWithPat,
   destroyClient,
-  getCurrentUserId,
   getSupabaseClient,
-  signIn,
-  signOut,
+  setSessionFromJwt,
 } from './api/supabase-client'
+import { decodeConnectionToken, isValidTokenFormat } from './api/token'
 import { DataService } from './api/data-service'
 import { VaultManager } from './vault/vault-manager'
 import { createFolderStructure } from './vault/folder-structure'
@@ -32,7 +32,11 @@ export default class FitAssistentPlugin extends Plugin {
   private dataService: DataService | null = null
   private realtimeManager: RealtimeManager | null = null
   private autoSyncInterval: ReturnType<typeof setInterval> | null = null
+  private jwtRefreshInterval: ReturnType<typeof setInterval> | null = null
   private statusBarEl: HTMLElement | null = null
+  private decodedUrl = ''
+  private decodedAnonKey = ''
+  private decodedSecret = ''
 
   async onload(): Promise<void> {
     // Detect locale from Obsidian's language setting
@@ -94,19 +98,15 @@ export default class FitAssistentPlugin extends Plugin {
       },
     })
 
-    // Auto-connect on startup if credentials are available
-    if (
-      this.settings.supabaseUrl &&
-      this.settings.supabaseAnonKey &&
-      this.settings.email &&
-      this.settings.password
-    ) {
+    // Auto-connect on startup if connection token is available
+    if (this.settings.connectionToken) {
       setTimeout(() => this.connect(), 2000)
     }
   }
 
   async onunload(): Promise<void> {
     this.stopAutoSync()
+    this.stopJwtRefresh()
     this.stopRealtime()
     destroyClient()
   }
@@ -130,23 +130,47 @@ export default class FitAssistentPlugin extends Plugin {
   // --- Connection ---
 
   async connect(): Promise<{ success: boolean; error?: string }> {
-    const { supabaseUrl, supabaseAnonKey, email, password } = this.settings
+    const { connectionToken } = this.settings
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return { success: false, error: t('auth.url_key_required') }
+    if (!connectionToken) {
+      return { success: false, error: t('auth.token_required') }
     }
-    if (!email || !password) {
-      return { success: false, error: t('auth.email_password_required') }
+
+    if (!isValidTokenFormat(connectionToken)) {
+      return { success: false, error: t('auth.token_invalid_format') }
     }
+
+    const decoded = decodeConnectionToken(connectionToken)
+    if (!decoded) {
+      return { success: false, error: t('connection.invalid_token') }
+    }
+
+    this.decodedUrl = decoded.url
+    this.decodedAnonKey = decoded.anonKey
+    this.decodedSecret = decoded.secret
 
     try {
-      const client = getSupabaseClient(supabaseUrl, supabaseAnonKey)
-      const result = await signIn(client, email, password)
+      // Authenticate via PAT → get JWT
+      const authResult = await authenticateWithPat(
+        decoded.url,
+        decoded.anonKey,
+        decoded.secret,
+      )
 
-      if ('error' in result) {
+      if ('error' in authResult) {
         this.isConnected = false
         this.updateStatusBar(t('connection.error'))
-        return { success: false, error: result.error }
+        return { success: false, error: authResult.error }
+      }
+
+      // Set JWT session on the client
+      const client = getSupabaseClient(decoded.url, decoded.anonKey)
+      const userId = await setSessionFromJwt(client, authResult.access_token)
+
+      if (!userId) {
+        this.isConnected = false
+        this.updateStatusBar(t('connection.error'))
+        return { success: false, error: t('auth.no_user') }
       }
 
       this.dataService = new DataService(client)
@@ -169,6 +193,7 @@ export default class FitAssistentPlugin extends Plugin {
       })
 
       this.setupAutoSync()
+      this.setupJwtRefresh(authResult.expires_at)
       if (this.settings.realtimeEnabled) {
         this.startRealtime()
       }
@@ -184,21 +209,62 @@ export default class FitAssistentPlugin extends Plugin {
 
   async disconnect(): Promise<void> {
     this.stopAutoSync()
+    this.stopJwtRefresh()
     this.stopRealtime()
-
-    if (this.settings.supabaseUrl && this.settings.supabaseAnonKey) {
-      const client = getSupabaseClient(
-        this.settings.supabaseUrl,
-        this.settings.supabaseAnonKey,
-      )
-      await signOut(client)
-    }
 
     destroyClient()
     this.dataService = null
     this.syncEngine = null!
     this.isConnected = false
+    this.decodedUrl = ''
+    this.decodedAnonKey = ''
+    this.decodedSecret = ''
     this.updateStatusBar(t('connection.disconnected'))
+  }
+
+  // --- JWT Refresh ---
+
+  private setupJwtRefresh(expiresAt: number): void {
+    this.stopJwtRefresh()
+
+    // Refresh 5 minutes before expiry (expiresAt is unix seconds)
+    const nowSec = Math.floor(Date.now() / 1000)
+    const refreshInMs = Math.max((expiresAt - nowSec - 300) * 1000, 60_000)
+
+    this.jwtRefreshInterval = setTimeout(async () => {
+      if (!this.isConnected || !this.decodedSecret) return
+
+      try {
+        const authResult = await authenticateWithPat(
+          this.decodedUrl,
+          this.decodedAnonKey,
+          this.decodedSecret,
+        )
+
+        if ('error' in authResult) {
+          this.isConnected = false
+          this.updateStatusBar(t('connection.error'))
+          new Notice(`FitAssistent: ${authResult.error}`)
+          return
+        }
+
+        const client = getSupabaseClient(this.decodedUrl, this.decodedAnonKey)
+        await setSessionFromJwt(client, authResult.access_token)
+
+        // Schedule next refresh
+        this.setupJwtRefresh(authResult.expires_at)
+      } catch {
+        this.isConnected = false
+        this.updateStatusBar(t('connection.error'))
+      }
+    }, refreshInMs)
+  }
+
+  private stopJwtRefresh(): void {
+    if (this.jwtRefreshInterval) {
+      clearTimeout(this.jwtRefreshInterval)
+      this.jwtRefreshInterval = null
+    }
   }
 
   // --- Sync Operations ---
@@ -306,16 +372,13 @@ export default class FitAssistentPlugin extends Plugin {
   // --- Realtime ---
 
   startRealtime(): void {
-    if (!this.isConnected || !this.syncEngine || !this.settings.supabaseUrl) {
+    if (!this.isConnected || !this.syncEngine || !this.decodedUrl) {
       return
     }
 
     this.stopRealtime()
 
-    const client = getSupabaseClient(
-      this.settings.supabaseUrl,
-      this.settings.supabaseAnonKey,
-    )
+    const client = getSupabaseClient(this.decodedUrl, this.decodedAnonKey)
 
     this.realtimeManager = new RealtimeManager(client, this.syncEngine)
     this.realtimeManager.subscribeAll()

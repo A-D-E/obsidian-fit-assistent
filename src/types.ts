@@ -275,10 +275,7 @@ export interface ShoppingItem {
 // --- Plugin Settings ---
 
 export interface FitAssistentSettings {
-  supabaseUrl: string
-  supabaseAnonKey: string
-  email: string
-  password: string
+  connectionToken: string
 
   // Sync config
   autoSync: boolean

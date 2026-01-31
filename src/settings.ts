@@ -34,73 +34,46 @@ export class FitAssistentSettingTab extends PluginSettingTab {
     })
 
     new Setting(section)
-      .setName(t('connection.supabase_url'))
-      .setDesc(t('connection.supabase_url_desc'))
-      .addText((text) =>
+      .setName(t('connection.token'))
+      .setDesc(t('connection.token_desc'))
+      .addTextArea((text) => {
+        text.inputEl.addClass('fit-assistent-token-input')
+        text.inputEl.style.fontFamily = 'monospace'
+        text.inputEl.style.fontSize = '11px'
+        text.inputEl.rows = 3
         text
-          .setPlaceholder(t('connection.supabase_url_placeholder'))
-          .setValue(this.plugin.settings.supabaseUrl)
+          .setPlaceholder(t('connection.token_placeholder'))
+          .setValue(this.plugin.settings.connectionToken)
           .onChange(async (value) => {
-            this.plugin.settings.supabaseUrl = value
-            await this.plugin.saveSettings()
-          }),
-      )
-
-    new Setting(section)
-      .setName(t('connection.anon_key'))
-      .setDesc(t('connection.anon_key_desc'))
-      .addText((text) =>
-        text
-          .setPlaceholder('eyJ...')
-          .setValue(this.plugin.settings.supabaseAnonKey)
-          .onChange(async (value) => {
-            this.plugin.settings.supabaseAnonKey = value
-            await this.plugin.saveSettings()
-          }),
-      )
-
-    new Setting(section)
-      .setName(t('connection.email'))
-      .setDesc(t('connection.email_desc'))
-      .addText((text) =>
-        text
-          .setPlaceholder('user@example.com')
-          .setValue(this.plugin.settings.email)
-          .onChange(async (value) => {
-            this.plugin.settings.email = value
-            await this.plugin.saveSettings()
-          }),
-      )
-
-    new Setting(section)
-      .setName(t('connection.password'))
-      .setDesc(t('connection.password_desc'))
-      .addText((text) => {
-        text.inputEl.type = 'password'
-        text
-          .setPlaceholder('••••••••')
-          .setValue(this.plugin.settings.password)
-          .onChange(async (value) => {
-            this.plugin.settings.password = value
+            this.plugin.settings.connectionToken = value.trim()
             await this.plugin.saveSettings()
           })
       })
 
+    // Help text
+    const helpEl = section.createDiv('setting-item-description')
+    helpEl.style.marginTop = '-8px'
+    helpEl.style.marginBottom = '12px'
+    helpEl.createEl('small', {
+      text: t('connection.token_help'),
+      cls: 'setting-item-description',
+    })
+
     new Setting(section)
-      .setName(t('connection.login_logout'))
-      .setDesc(t('connection.login_logout_desc'))
+      .setName(t('connection.connect_disconnect'))
+      .setDesc(t('connection.connect_disconnect_desc'))
       .addButton((button) =>
         button
           .setButtonText(
             this.plugin.isConnected
-              ? t('connection.sign_out')
-              : t('connection.sign_in'),
+              ? t('connection.disconnect')
+              : t('connection.connect'),
           )
           .setCta()
           .onClick(async () => {
             if (this.plugin.isConnected) {
               await this.plugin.disconnect()
-              new Notice(`FitAssistent: ${t('notice.signed_out')}`)
+              new Notice(`FitAssistent: ${t('connection.disconnected')}`)
             } else {
               const result = await this.plugin.connect()
               if (result.success) {
