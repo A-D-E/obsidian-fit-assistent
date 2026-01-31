@@ -1,6 +1,6 @@
 import { type App, Notice, PluginSettingTab, Setting } from 'obsidian'
 import type FitAssistentPlugin from './main'
-import { signIn, signOut, getCurrentUserId } from './api/supabase-client'
+import { t } from './i18n'
 
 /**
  * Settings tab for the FitAssistent plugin.
@@ -18,38 +18,27 @@ export class FitAssistentSettingTab extends PluginSettingTab {
     containerEl.empty()
     containerEl.addClass('fit-assistent-settings')
 
-    // ---- Connection Section ----
     this.renderConnectionSection(containerEl)
-
-    // ---- Sync Config ----
     this.renderSyncSection(containerEl)
-
-    // ---- Content Toggles ----
     this.renderContentToggles(containerEl)
-
-    // ---- Folder Config ----
     this.renderFolderConfig(containerEl)
-
-    // ---- Display ----
     this.renderDisplaySection(containerEl)
-
-    // ---- Advanced ----
     this.renderAdvancedSection(containerEl)
   }
 
   private renderConnectionSection(containerEl: HTMLElement): void {
     const section = containerEl.createDiv('setting-section')
     section.createEl('h3', {
-      text: 'Verbindung',
+      text: t('connection.title'),
       cls: 'setting-section-title',
     })
 
     new Setting(section)
-      .setName('Supabase URL')
-      .setDesc('Die URL deiner Self-Hosted Supabase-Instanz')
+      .setName(t('connection.supabase_url'))
+      .setDesc(t('connection.supabase_url_desc'))
       .addText((text) =>
         text
-          .setPlaceholder('https://supabase.example.com')
+          .setPlaceholder(t('connection.supabase_url_placeholder'))
           .setValue(this.plugin.settings.supabaseUrl)
           .onChange(async (value) => {
             this.plugin.settings.supabaseUrl = value
@@ -58,8 +47,8 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('Supabase Anon Key')
-      .setDesc('Der öffentliche Anon-Key deiner Supabase-Instanz')
+      .setName(t('connection.anon_key'))
+      .setDesc(t('connection.anon_key_desc'))
       .addText((text) =>
         text
           .setPlaceholder('eyJ...')
@@ -71,8 +60,8 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('E-Mail')
-      .setDesc('Deine FitAssistent Login-E-Mail')
+      .setName(t('connection.email'))
+      .setDesc(t('connection.email_desc'))
       .addText((text) =>
         text
           .setPlaceholder('user@example.com')
@@ -84,8 +73,8 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('Passwort')
-      .setDesc('Dein FitAssistent-Passwort')
+      .setName(t('connection.password'))
+      .setDesc(t('connection.password_desc'))
       .addText((text) => {
         text.inputEl.type = 'password'
         text
@@ -98,46 +87,51 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       })
 
     new Setting(section)
-      .setName('Anmelden / Abmelden')
-      .setDesc('Verbindung zur FitAssistent-App herstellen')
+      .setName(t('connection.login_logout'))
+      .setDesc(t('connection.login_logout_desc'))
       .addButton((button) =>
         button
-          .setButtonText(this.plugin.isConnected ? 'Abmelden' : 'Anmelden')
+          .setButtonText(
+            this.plugin.isConnected
+              ? t('connection.sign_out')
+              : t('connection.sign_in'),
+          )
           .setCta()
           .onClick(async () => {
             if (this.plugin.isConnected) {
               await this.plugin.disconnect()
-              new Notice('FitAssistent: Abgemeldet')
+              new Notice(`FitAssistent: ${t('notice.signed_out')}`)
             } else {
               const result = await this.plugin.connect()
               if (result.success) {
-                new Notice('FitAssistent: Verbunden!')
+                new Notice(`FitAssistent: ${t('notice.connected')}`)
               } else {
-                new Notice(`FitAssistent: Fehler - ${result.error}`)
+                new Notice(
+                  `FitAssistent: ${t('notice.error')} - ${result.error}`,
+                )
               }
             }
             this.display()
           }),
       )
 
-    // Connection status indicator
     if (this.plugin.isConnected) {
       const status = section.createDiv('connection-status connected')
       status.createSpan({ cls: 'status-dot connected' })
-      status.createSpan({ text: ' Verbunden' })
+      status.createSpan({ text: ` ${t('connection.connected')}` })
     }
   }
 
   private renderSyncSection(containerEl: HTMLElement): void {
     const section = containerEl.createDiv('setting-section')
     section.createEl('h3', {
-      text: 'Synchronisation',
+      text: t('sync.title'),
       cls: 'setting-section-title',
     })
 
     new Setting(section)
-      .setName('Auto-Sync')
-      .setDesc('Automatisch synchronisieren nach Zeitintervall')
+      .setName(t('sync.auto'))
+      .setDesc(t('sync.auto_desc'))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.autoSync)
@@ -149,8 +143,8 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('Sync-Intervall')
-      .setDesc('Intervall für automatische Synchronisation (Minuten)')
+      .setName(t('sync.interval'))
+      .setDesc(t('sync.interval_desc'))
       .addSlider((slider) =>
         slider
           .setLimits(5, 120, 5)
@@ -164,10 +158,8 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('Realtime Updates')
-      .setDesc(
-        'Echtzeit-Updates über Supabase Realtime (sofortige Synchronisation bei Änderungen)',
-      )
+      .setName(t('sync.realtime'))
+      .setDesc(t('sync.realtime_desc'))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.realtimeEnabled)
@@ -183,26 +175,26 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('Jetzt synchronisieren')
-      .setDesc('Vollständige Synchronisation aller Daten starten')
+      .setName(t('sync.now'))
+      .setDesc(t('sync.now_desc'))
       .addButton((button) =>
         button
-          .setButtonText('Full Sync')
+          .setButtonText(t('sync.full'))
           .setCta()
           .onClick(async () => {
             if (!this.plugin.isConnected) {
-              new Notice('FitAssistent: Bitte zuerst anmelden')
+              new Notice(`FitAssistent: ${t('notice.please_sign_in')}`)
               return
             }
-            new Notice('FitAssistent: Sync gestartet...')
+            new Notice(`FitAssistent: ${t('sync.started')}`)
             const result = await this.plugin.runFullSync()
             if (result.success) {
               new Notice(
-                `FitAssistent: Sync abgeschlossen (${result.filesCreated} erstellt, ${result.filesUpdated} aktualisiert)`,
+                `FitAssistent: ${t('notice.sync_done', { created: result.filesCreated, updated: result.filesUpdated })}`,
               )
             } else {
               new Notice(
-                `FitAssistent: Sync mit ${result.errors.length} Fehlern abgeschlossen`,
+                `FitAssistent: ${t('notice.sync_errors', { count: result.errors.length })}`,
               )
             }
           }),
@@ -212,37 +204,37 @@ export class FitAssistentSettingTab extends PluginSettingTab {
   private renderContentToggles(containerEl: HTMLElement): void {
     const section = containerEl.createDiv('setting-section')
     section.createEl('h3', {
-      text: 'Inhalte',
+      text: t('content.title'),
       cls: 'setting-section-title',
     })
 
     const toggles: [keyof typeof this.plugin.settings, string, string][] = [
-      ['syncRecipes', 'Rezepte', 'Individuelle Rezept-Dateien synchronisieren'],
-      ['syncMeals', 'Mahlzeiten', 'Mahlzeiten in Tagesnotizen'],
-      ['syncWater', 'Wasser', 'Wasser-Einträge in Tagesnotizen'],
-      ['syncWeight', 'Gewicht', 'Gewichts-Einträge in Tagesnotizen'],
-      ['syncMealprep', 'Mealprep', 'Mealprep-Pläne synchronisieren'],
-      ['syncProfile', 'Profil', 'Profildaten synchronisieren'],
-      ['syncInventory', 'Inventar', 'Kücheninventar synchronisieren'],
+      ['syncRecipes', t('content.recipes'), t('content.recipes_desc')],
+      ['syncMeals', t('content.meals'), t('content.meals_desc')],
+      ['syncWater', t('content.water'), t('content.water_desc')],
+      ['syncWeight', t('content.weight'), t('content.weight_desc')],
+      ['syncMealprep', t('content.mealprep'), t('content.mealprep_desc')],
+      ['syncProfile', t('content.profile'), t('content.profile_desc')],
+      ['syncInventory', t('content.inventory'), t('content.inventory_desc')],
       [
         'syncMedications',
-        'Medikamente',
-        'Medikamentenliste synchronisieren',
+        t('content.medications'),
+        t('content.medications_desc'),
       ],
       [
         'syncMedicationLogs',
-        'Medikamenten-Logs',
-        'Medikamenten-Einnahmen in Tagesnotizen',
+        t('content.medication_logs'),
+        t('content.medication_logs_desc'),
       ],
       [
         'syncBloodPressure',
-        'Blutdruck',
-        'Blutdruck-Messungen in Tagesnotizen',
+        t('content.blood_pressure'),
+        t('content.blood_pressure_desc'),
       ],
       [
         'syncShoppingList',
-        'Einkaufsliste',
-        'Einkaufsliste synchronisieren',
+        t('content.shopping_list'),
+        t('content.shopping_list_desc'),
       ],
     ]
 
@@ -264,17 +256,17 @@ export class FitAssistentSettingTab extends PluginSettingTab {
   private renderFolderConfig(containerEl: HTMLElement): void {
     const section = containerEl.createDiv('setting-section')
     section.createEl('h3', {
-      text: 'Ordner',
+      text: t('folders.title'),
       cls: 'setting-section-title',
     })
 
     const folders: [keyof typeof this.plugin.settings, string, string][] = [
-      ['basePath', 'Basis-Ordner', 'Hauptordner für alle FitAssistent-Daten'],
-      ['recipesFolder', 'Rezepte', 'Unterordner für Rezepte'],
-      ['trackerFolder', 'Tracker', 'Unterordner für Tagesnotizen'],
-      ['mealprepFolder', 'Mealprep', 'Unterordner für Mealprep-Pläne'],
-      ['healthFolder', 'Gesundheit', 'Unterordner für Medikamente'],
-      ['listsFolder', 'Listen', 'Unterordner für Inventar & Einkaufsliste'],
+      ['basePath', t('folders.base'), t('folders.base_desc')],
+      ['recipesFolder', t('folders.recipes'), t('folders.recipes_desc')],
+      ['trackerFolder', t('folders.tracker'), t('folders.tracker_desc')],
+      ['mealprepFolder', t('folders.mealprep'), t('folders.mealprep_desc')],
+      ['healthFolder', t('folders.health'), t('folders.health_desc')],
+      ['listsFolder', t('folders.lists'), t('folders.lists_desc')],
     ]
 
     for (const [key, name, desc] of folders) {
@@ -295,13 +287,13 @@ export class FitAssistentSettingTab extends PluginSettingTab {
   private renderDisplaySection(containerEl: HTMLElement): void {
     const section = containerEl.createDiv('setting-section')
     section.createEl('h3', {
-      text: 'Anzeige',
+      text: t('display.title'),
       cls: 'setting-section-title',
     })
 
     new Setting(section)
-      .setName('Status Bar')
-      .setDesc('Sync-Status in der Statusleiste anzeigen')
+      .setName(t('display.status_bar'))
+      .setDesc(t('display.status_bar_desc'))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.showStatusBar)
@@ -312,8 +304,8 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       )
 
     new Setting(section)
-      .setName('Nährwert-Ziele')
-      .setDesc('Ziel-Vergleich in Tagesnotizen anzeigen')
+      .setName(t('display.nutrition_goals'))
+      .setDesc(t('display.nutrition_goals_desc'))
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.showNutritionGoals)
@@ -327,38 +319,35 @@ export class FitAssistentSettingTab extends PluginSettingTab {
   private renderAdvancedSection(containerEl: HTMLElement): void {
     const section = containerEl.createDiv('setting-section')
     section.createEl('h3', {
-      text: 'Erweitert',
+      text: t('advanced.title'),
       cls: 'setting-section-title',
     })
 
     new Setting(section)
-      .setName('Sync-State zurücksetzen')
-      .setDesc(
-        'Setzt den Sync-State zurück. Der nächste Sync wird alle Daten neu laden.',
-      )
+      .setName(t('advanced.reset'))
+      .setDesc(t('advanced.reset_desc'))
       .addButton((button) =>
         button
-          .setButtonText('Zurücksetzen')
+          .setButtonText(t('advanced.reset_button'))
           .setWarning()
           .onClick(async () => {
             await this.plugin.resetSyncState()
-            new Notice('FitAssistent: Sync-State zurückgesetzt')
+            new Notice(`FitAssistent: ${t('advanced.reset_done')}`)
           }),
       )
 
-    // Sync info
     const state = this.plugin.getSyncState()
     if (state.lastFullSync) {
       const infoEl = section.createDiv('sync-info')
       const lastSync = new Date(state.lastFullSync)
       infoEl.setText(
-        `Letzter Full Sync: ${lastSync.toLocaleDateString('de')} ${lastSync.toLocaleTimeString('de')}`,
+        `${t('advanced.last_sync')}: ${lastSync.toLocaleDateString()} ${lastSync.toLocaleTimeString()}`,
       )
     }
 
     if (state.syncErrors.length > 0) {
       const errEl = section.createDiv('sync-info')
-      errEl.setText(`Letzte Fehler: ${state.syncErrors.length}`)
+      errEl.setText(`${t('advanced.last_errors')}: ${state.syncErrors.length}`)
     }
   }
 }
