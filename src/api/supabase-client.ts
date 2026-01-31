@@ -68,7 +68,7 @@ export function getSupabaseClient(
   supabaseInstance = createClient(url, anonKey, {
     auth: {
       persistSession: false,
-      autoRefreshToken: true,
+      autoRefreshToken: false,
     },
     global: {
       fetch: obsidianFetch as unknown as typeof fetch,
@@ -79,34 +79,57 @@ export function getSupabaseClient(
 }
 
 /**
- * Signs in with email and password.
+ * Authenticate via PAT: calls the validate-pat edge function
+ * and returns a short-lived JWT.
  */
-export async function signIn(
-  client: SupabaseClient,
-  email: string,
-  password: string,
-): Promise<{ userId: string } | { error: string }> {
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password,
+export async function authenticateWithPat(
+  url: string,
+  anonKey: string,
+  tokenSecret: string,
+): Promise<{ access_token: string; expires_at: number } | { error: string }> {
+  const client = getSupabaseClient(url, anonKey)
+
+  const { data, error } = await client.functions.invoke('main', {
+    body: { action: 'validate-pat', token: tokenSecret },
   })
 
   if (error) {
     return { error: error.message }
   }
 
-  if (!data.user) {
+  if (data?.error) {
+    const errorCode = data.error as string
+    if (errorCode === 'INVALID_TOKEN') return { error: t('connection.invalid_token') }
+    if (errorCode === 'TOKEN_REVOKED') return { error: t('connection.token_revoked') }
+    if (errorCode === 'TOKEN_EXPIRED') return { error: t('connection.token_expired') }
+    return { error: errorCode }
+  }
+
+  if (!data?.access_token) {
     return { error: t('auth.no_user') }
   }
 
-  return { userId: data.user.id }
+  return {
+    access_token: data.access_token as string,
+    expires_at: data.expires_at as number,
+  }
 }
 
 /**
- * Signs out the current user.
+ * Sets a custom JWT on the Supabase client so RLS works with auth.uid().
+ * Uses setSession with the JWT as both access and refresh token.
  */
-export async function signOut(client: SupabaseClient): Promise<void> {
-  await client.auth.signOut()
+export async function setSessionFromJwt(
+  client: SupabaseClient,
+  jwt: string,
+): Promise<string | null> {
+  const { data, error } = await client.auth.setSession({
+    access_token: jwt,
+    refresh_token: jwt,
+  })
+
+  if (error) return null
+  return data.user?.id ?? null
 }
 
 /**
