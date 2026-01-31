@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { Medication } from '../types'
 import {
   getMedTypeEmoji,
@@ -22,10 +23,10 @@ export function renderMedications(medications: Medication[]): string {
     }),
   )
 
-  sections.push('# Medikamente & Supplements')
+  sections.push(`# ${t('tpl.meds.title')}`)
 
   if (medications.length === 0) {
-    sections.push('*Keine Medikamente eingetragen.*')
+    sections.push(`*${t('tpl.meds.empty')}*`)
     return sections.join('\n\n')
   }
 
@@ -43,9 +44,9 @@ export function renderMedications(medications: Medication[]): string {
   }
 
   const typeLabels: Record<string, string> = {
-    medication: 'Medikamente',
-    vitamin: 'Vitamine',
-    supplement: 'Supplemente',
+    medication: t('tpl.meds.type_medication'),
+    vitamin: t('tpl.meds.type_vitamin'),
+    supplement: t('tpl.meds.type_supplement'),
   }
 
   for (const type of ['medication', 'vitamin', 'supplement'] as const) {
@@ -56,7 +57,7 @@ export function renderMedications(medications: Medication[]): string {
     const label = typeLabels[type]
     sections.push(`## ${emoji} ${label} (${meds.length})`)
 
-    const headers = ['Name', 'Dosierung', 'Zeiten', 'Erinnerung', 'Status']
+    const headers = [t('tpl.meds.name'), t('tpl.meds.dosage'), t('tpl.meds.times'), t('tpl.meds.reminder'), t('tpl.status')]
     const rows: string[][] = []
 
     for (const med of meds) {
@@ -71,7 +72,7 @@ export function renderMedications(medications: Medication[]): string {
           : '–'
 
       const reminder = med.reminder_enabled ? '🔔' : '🔕'
-      const status = med.is_active ? '✅ Aktiv' : '⏸️ Pausiert'
+      const status = med.is_active ? t('tpl.meds.active') : t('tpl.meds.paused')
 
       rows.push([med.name, dosage, times, reminder, status])
     }
@@ -81,7 +82,7 @@ export function renderMedications(medications: Medication[]): string {
     // Notes for medications with notes
     const medsWithNotes = meds.filter((m) => m.notes)
     if (medsWithNotes.length > 0) {
-      sections.push('### Notizen')
+      sections.push(`### ${t('tpl.notes')}`)
       for (const med of medsWithNotes) {
         sections.push(`- **${med.name}:** ${med.notes}`)
       }

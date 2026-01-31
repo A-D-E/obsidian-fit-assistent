@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type {
   DailyData,
   Medication,
@@ -39,7 +40,7 @@ export function renderDailyNote(
 
   // --- Weight ---
   if (data.weightLogs.length > 0) {
-    sections.push('## ⚖️ Gewicht')
+    sections.push(`## ${t('tpl.daily.weight')}`)
     for (const log of data.weightLogs) {
       sections.push(`**${formatNumber(log.weight)} kg**`)
     }
@@ -47,7 +48,7 @@ export function renderDailyNote(
 
   // --- Meals ---
   if (data.meals.length > 0) {
-    sections.push('## 🍽️ Mahlzeiten')
+    sections.push(`## ${t('tpl.daily.meals')}`)
 
     const mealRows: string[][] = []
     let totalCal = 0
@@ -71,7 +72,7 @@ export function renderDailyNote(
 
     // Summary row
     mealRows.push([
-      '**Gesamt**',
+      `**${t('tpl.daily.total')}**`,
       `**${totalCal}**`,
       `**${formatNumber(totalProtein)}**`,
       `**${formatNumber(totalCarbs)}**`,
@@ -80,7 +81,7 @@ export function renderDailyNote(
 
     sections.push(
       renderTable(
-        ['Mahlzeit', 'kcal', 'Protein (g)', 'KH (g)', 'Fett (g)'],
+        [t('tpl.daily.meal'), 'kcal', t('tpl.daily.protein_g'), t('tpl.daily.carbs_g'), t('tpl.daily.fat_g')],
         mealRows,
         ['left', 'right', 'right', 'right', 'right'],
       ),
@@ -88,7 +89,7 @@ export function renderDailyNote(
 
     // Goal comparison if strategy exists
     if (profile?.strategy) {
-      sections.push('### Ziel-Vergleich')
+      sections.push(`### ${t('tpl.daily.goal_comparison')}`)
       const strategy = profile.strategy
 
       const calDiff = totalCal - strategy.daily_calories
@@ -98,28 +99,28 @@ export function renderDailyNote(
 
       sections.push(
         renderTable(
-          ['Nährstoff', 'Ist', 'Ziel', 'Differenz'],
+          [t('tpl.nutrient'), t('tpl.daily.actual'), t('tpl.daily.goal'), t('tpl.daily.diff')],
           [
             [
-              'Kalorien',
+              t('tpl.calories'),
               `${totalCal} kcal`,
               `${strategy.daily_calories} kcal`,
               `${calDiff >= 0 ? '+' : ''}${calDiff} kcal`,
             ],
             [
-              'Protein',
+              t('tpl.protein'),
               `${formatNumber(totalProtein)} g`,
               `${formatNumber(strategy.protein_target)} g`,
               `${proteinDiff >= 0 ? '+' : ''}${formatNumber(proteinDiff)} g`,
             ],
             [
-              'Kohlenhydrate',
+              t('tpl.carbs'),
               `${formatNumber(totalCarbs)} g`,
               `${formatNumber(strategy.carb_target)} g`,
               `${carbDiff >= 0 ? '+' : ''}${formatNumber(carbDiff)} g`,
             ],
             [
-              'Fett',
+              t('tpl.fat'),
               `${formatNumber(totalFat)} g`,
               `${formatNumber(strategy.fat_target)} g`,
               `${fatDiff >= 0 ? '+' : ''}${formatNumber(fatDiff)} g`,
@@ -133,7 +134,7 @@ export function renderDailyNote(
 
   // --- Water ---
   if (data.waterLogs.length > 0) {
-    sections.push('## 💧 Wasser')
+    sections.push(`## ${t('tpl.daily.water')}`)
 
     const totalWater = data.waterLogs.reduce((sum, log) => sum + log.amount, 0)
     const goal = profile?.water_settings?.daily_goal ?? 2500
@@ -146,13 +147,13 @@ export function renderDailyNote(
         formatDate(log.timestamp, 'time'),
         `${log.amount} ml`,
       ])
-      sections.push(renderTable(['Uhrzeit', 'Menge'], waterRows))
+      sections.push(renderTable([t('tpl.time'), t('tpl.amount')], waterRows))
     }
   }
 
   // --- Medication Logs ---
   if (data.medicationLogs.length > 0) {
-    sections.push('## 💊 Medikamente')
+    sections.push(`## ${t('tpl.daily.medications')}`)
 
     const medRows: string[][] = []
     for (const log of data.medicationLogs) {
@@ -165,13 +166,13 @@ export function renderDailyNote(
     }
 
     sections.push(
-      renderTable(['', 'Medikament', 'Uhrzeit', 'Status'], medRows),
+      renderTable(['', t('tpl.daily.medication'), t('tpl.time'), t('tpl.status')], medRows),
     )
   }
 
   // --- Blood Pressure ---
   if (data.bloodPressureLogs.length > 0) {
-    sections.push('## ❤️ Blutdruck')
+    sections.push(`## ${t('tpl.daily.blood_pressure')}`)
 
     const bpRows: string[][] = []
     for (const log of data.bloodPressureLogs) {
@@ -199,7 +200,7 @@ export function renderDailyNote(
     }
 
     sections.push(
-      renderTable(['Zeit', 'Blutdruck', 'Bewertung', 'Puls'], bpRows),
+      renderTable([t('tpl.time'), t('tpl.daily.bp_value'), t('tpl.daily.rating'), t('tpl.daily.pulse')], bpRows),
     )
   }
 
@@ -211,7 +212,7 @@ export function renderDailyNote(
     data.medicationLogs.length === 0 &&
     data.bloodPressureLogs.length === 0
   ) {
-    sections.push('*Keine Daten für diesen Tag.*')
+    sections.push(`*${t('tpl.daily.no_data')}*`)
   }
 
   return sections.join('\n\n')

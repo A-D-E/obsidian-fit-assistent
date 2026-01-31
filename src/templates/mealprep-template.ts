@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { MealPrepPlan, MealSlot, Recipe } from '../types'
 import {
   formatDate,
@@ -21,77 +22,77 @@ export function renderMealprepPlan(
     renderFrontmatter({
       id: plan.id,
       status: plan.status,
-      duration: `${plan.duration} Tage`,
+      duration: `${plan.duration} ${t('tpl.days_suffix')}`,
       start: plan.start_date,
       end: plan.end_date,
       synced: new Date().toISOString(),
     }),
   )
 
-  const title = plan.name ?? `Mealprep ${formatDate(plan.start_date)} – ${formatDate(plan.end_date)}`
+  const title = plan.name ?? `${t('tpl.mealprep.fallback_title')} ${formatDate(plan.start_date)} – ${formatDate(plan.end_date)}`
   sections.push(`# ${title}`)
 
   // Status badge
   const statusLabels: Record<string, string> = {
-    planning: '📝 Planung',
-    active: '🟢 Aktiv',
-    completed: '✅ Abgeschlossen',
-    cancelled: '❌ Abgebrochen',
+    planning: t('tpl.mealprep.status_planning'),
+    active: t('tpl.mealprep.status_active'),
+    completed: t('tpl.mealprep.status_completed'),
+    cancelled: t('tpl.mealprep.status_cancelled'),
   }
-  sections.push(`**Status:** ${statusLabels[plan.status] ?? plan.status}`)
+  sections.push(`**${t('tpl.status')}:** ${statusLabels[plan.status] ?? plan.status}`)
 
   // Days
   if (plan.days && plan.days.length > 0) {
-    sections.push('## Tagesplan')
+    sections.push(`## ${t('tpl.mealprep.daily_plan')}`)
 
     for (const day of plan.days) {
       const weekday = getWeekdayLabel(day.date)
       sections.push(`### ${weekday}, ${formatDate(day.date)}`)
 
       if (day.is_rest_day) {
-        sections.push('*Ruhetag – keine Mahlzeiten geplant*')
+        sections.push(`*${t('tpl.mealprep.rest_day')}*`)
         continue
       }
 
       const mealRows: string[][] = []
 
       if (day.meals.breakfast) {
-        mealRows.push(renderMealSlotRow('Frühstück', day.meals.breakfast, recipeMap))
+        mealRows.push(renderMealSlotRow(t('tpl.mealprep.breakfast'), day.meals.breakfast, recipeMap))
       }
       if (day.meals.lunch) {
-        mealRows.push(renderMealSlotRow('Mittagessen', day.meals.lunch, recipeMap))
+        mealRows.push(renderMealSlotRow(t('tpl.mealprep.lunch'), day.meals.lunch, recipeMap))
       }
       if (day.meals.dinner) {
-        mealRows.push(renderMealSlotRow('Abendessen', day.meals.dinner, recipeMap))
+        mealRows.push(renderMealSlotRow(t('tpl.mealprep.dinner'), day.meals.dinner, recipeMap))
       }
       if (day.meals.snacks && day.meals.snacks.length > 0) {
         for (const snack of day.meals.snacks) {
-          mealRows.push(renderMealSlotRow('Snack', snack, recipeMap))
+          mealRows.push(renderMealSlotRow(t('tpl.mealprep.snack'), snack, recipeMap))
         }
       }
 
       if (mealRows.length > 0) {
         sections.push(
           renderTable(
-            ['Mahlzeit', 'Rezept', 'Portionen', 'Info'],
+            [t('tpl.daily.meal'), t('tpl.mealprep.recipe'), t('tpl.mealprep.portions'), t('tpl.mealprep.info')],
             mealRows,
           ),
         )
       }
 
       if (day.prep_instructions) {
-        sections.push(`> **Vorbereitung:** ${day.prep_instructions}`)
+        sections.push(`> **${t('tpl.mealprep.preparation')}:** ${day.prep_instructions}`)
       }
     }
   }
 
   // Shopping list
   if (plan.shopping_list && plan.shopping_list.length > 0) {
-    sections.push('## Einkaufsliste')
+    sections.push(`## ${t('tpl.mealprep.shopping_list')}`)
 
     const checked = plan.shopping_list.filter((i) => i.checked).length
     const total = plan.shopping_list.length
-    sections.push(`**Fortschritt:** ${checked}/${total}`)
+    sections.push(`**${t('tpl.progress')}:** ${checked}/${total}`)
 
     for (const item of plan.shopping_list) {
       const checkbox = item.checked ? '- [x]' : '- [ ]'
@@ -103,27 +104,27 @@ export function renderMealprepPlan(
 
   // Feedback
   if (plan.feedback) {
-    sections.push('## Feedback')
+    sections.push(`## ${t('tpl.mealprep.feedback')}`)
     const fb = plan.feedback
-    sections.push(`- **Bewertung:** ${'⭐'.repeat(fb.overall_rating)}`)
+    sections.push(`- **${t('tpl.mealprep.rating')}:** ${'⭐'.repeat(fb.overall_rating)}`)
 
-    const portionLabels = {
-      too_little: 'Zu wenig',
-      perfect: 'Perfekt',
-      too_much: 'Zu viel',
+    const portionLabels: Record<string, string> = {
+      too_little: t('tpl.mealprep.too_little'),
+      perfect: t('tpl.mealprep.perfect'),
+      too_much: t('tpl.mealprep.too_much'),
     }
     sections.push(
-      `- **Portionen:** ${portionLabels[fb.portion_feedback]}`,
+      `- **${t('tpl.mealprep.portions_feedback')}:** ${portionLabels[fb.portion_feedback]}`,
     )
 
     if (fb.time_issues) {
-      sections.push('- **Zeitprobleme:** Ja')
+      sections.push(`- **${t('tpl.mealprep.time_issues')}:** ${t('tpl.mealprep.yes')}`)
     }
     if (fb.storage_issues) {
-      sections.push(`- **Lagerung:** ${fb.storage_issues}`)
+      sections.push(`- **${t('tpl.mealprep.storage')}:** ${fb.storage_issues}`)
     }
     if (fb.freeform_notes) {
-      sections.push(`- **Notizen:** ${fb.freeform_notes}`)
+      sections.push(`- **${t('tpl.notes')}:** ${fb.freeform_notes}`)
     }
   }
 
@@ -140,10 +141,10 @@ function renderMealSlotRow(
 
   const infoParts: string[] = []
   if (slot.is_leftover) {
-    infoParts.push('♻️ Reste')
+    infoParts.push(t('tpl.mealprep.leftover'))
   }
   if (slot.is_cooked) {
-    infoParts.push('✅ Gekocht')
+    infoParts.push(t('tpl.mealprep.cooked'))
   }
 
   return [label, recipeName, String(slot.portions), infoParts.join(' ') || '–']

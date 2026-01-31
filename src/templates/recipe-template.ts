@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { Recipe, StructuredIngredient } from '../types'
 import {
   formatDate,
@@ -29,7 +30,7 @@ export function renderRecipe(recipe: Recipe): string {
   )
 
   // Title
-  sections.push(`# ${recipe.title || 'Unbekanntes Rezept'}`)
+  sections.push(`# ${recipe.title || t('tpl.recipe.unknown')}`)
 
   // Description
   if (recipe.description) {
@@ -39,23 +40,23 @@ export function renderRecipe(recipe: Recipe): string {
   // Metadata line
   const metaParts: string[] = []
   if (recipe.preparation_time) {
-    metaParts.push(`⏱️ ${recipe.preparation_time} Min`)
+    metaParts.push(`⏱️ ${recipe.preparation_time} ${t('tpl.min_suffix')}`)
   }
   if (recipe.total_weight) {
     metaParts.push(`⚖️ ${recipe.total_weight}`)
   }
   if (recipe.is_favorite) {
-    metaParts.push('⭐ Favorit')
+    metaParts.push(`⭐ ${t('tpl.recipe.favorite')}`)
   }
   if (metaParts.length > 0) {
     sections.push(metaParts.join(' | '))
   }
 
   // Nutrition overview
-  sections.push('## Nährwerte')
+  sections.push(`## ${t('tpl.recipe.nutrition')}`)
   sections.push(
     renderTable(
-      ['Kalorien', 'Protein', 'Kohlenhydrate', 'Fett'],
+      [t('tpl.calories'), t('tpl.protein'), t('tpl.carbs'), t('tpl.fat')],
       [
         [
           `${recipe.calories} kcal`,
@@ -71,32 +72,32 @@ export function renderRecipe(recipe: Recipe): string {
   // Extended micros
   const extendedMicros: string[][] = []
   if (recipe.fiber !== undefined) {
-    extendedMicros.push(['Ballaststoffe', `${formatNumber(recipe.fiber)} g`])
+    extendedMicros.push([t('tpl.fiber'), `${formatNumber(recipe.fiber)} g`])
   }
   if (recipe.sugar !== undefined) {
-    extendedMicros.push(['Zucker', `${formatNumber(recipe.sugar)} g`])
+    extendedMicros.push([t('tpl.sugar'), `${formatNumber(recipe.sugar)} g`])
   }
   if (recipe.salt !== undefined) {
-    extendedMicros.push(['Salz', `${formatNumber(recipe.salt)} g`])
+    extendedMicros.push([t('tpl.salt'), `${formatNumber(recipe.salt)} g`])
   }
   if (recipe.zinc !== undefined) {
-    extendedMicros.push(['Zink', `${formatNumber(recipe.zinc)} mg`])
+    extendedMicros.push([t('tpl.zinc'), `${formatNumber(recipe.zinc)} mg`])
   }
 
   if (extendedMicros.length > 0) {
-    sections.push(renderTable(['Nährstoff', 'Menge'], extendedMicros))
+    sections.push(renderTable([t('tpl.nutrient'), t('tpl.amount')], extendedMicros))
   }
 
   // Micros highlights
   if (recipe.micros_highlights && recipe.micros_highlights.length > 0) {
-    sections.push('### Mikronährstoff-Highlights')
+    sections.push(`### ${t('tpl.recipe.micro_highlights')}`)
     for (const micro of recipe.micros_highlights) {
       sections.push(`- **${micro.name}** (${micro.amount}): ${micro.benefit}`)
     }
   }
 
   // Ingredients
-  sections.push('## Zutaten')
+  sections.push(`## ${t('tpl.recipe.ingredients')}`)
   if (recipe.ingredients && recipe.ingredients.length > 0) {
     if (isStructuredIngredients(recipe.ingredients)) {
       for (const ing of recipe.ingredients) {
@@ -110,7 +111,7 @@ export function renderRecipe(recipe: Recipe): string {
   }
 
   // Instructions
-  sections.push('## Zubereitung')
+  sections.push(`## ${t('tpl.recipe.instructions')}`)
   if (recipe.instructions && recipe.instructions.length > 0) {
     recipe.instructions.forEach((step, i) => {
       sections.push(`${i + 1}. ${step}`)
@@ -120,11 +121,11 @@ export function renderRecipe(recipe: Recipe): string {
   // Meta info
   if (recipe.meta) {
     if (recipe.meta.activity_context) {
-      sections.push('## Aktivitäts-Kontext')
+      sections.push(`## ${t('tpl.recipe.activity_context')}`)
       sections.push(recipe.meta.activity_context)
     }
     if (recipe.meta.carb_stretch_technique) {
-      sections.push('## Carb-Stretch Technik')
+      sections.push(`## ${t('tpl.recipe.carb_stretch')}`)
       sections.push(recipe.meta.carb_stretch_technique)
     }
   }
@@ -132,7 +133,7 @@ export function renderRecipe(recipe: Recipe): string {
   // Tags
   if (recipe.tags && recipe.tags.length > 0) {
     sections.push('---')
-    sections.push(`Tags: ${recipe.tags.map((t) => `#${t}`).join(' ')}`)
+    sections.push(`Tags: ${recipe.tags.map((tag) => `#${tag}`).join(' ')}`)
   }
 
   return sections.join('\n\n')

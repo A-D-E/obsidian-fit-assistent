@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { InventoryItem } from '../types'
 import {
   formatDate,
@@ -22,10 +23,10 @@ export function renderInventory(items: InventoryItem[]): string {
     }),
   )
 
-  sections.push('# Inventar')
+  sections.push(`# ${t('tpl.inventory.title')}`)
 
   if (items.length === 0) {
-    sections.push('*Keine Artikel im Inventar.*')
+    sections.push(`*${t('tpl.inventory.empty')}*`)
     return sections.join('\n\n')
   }
 
@@ -53,7 +54,7 @@ export function renderInventory(items: InventoryItem[]): string {
     const label = getCategoryLabel(category)
     sections.push(`## ${emoji} ${label} (${categoryItems.length})`)
 
-    const headers = ['Artikel', 'Menge', 'Haltbar bis', 'Status']
+    const headers = [t('tpl.inventory.item'), t('tpl.amount'), t('tpl.inventory.best_before'), t('tpl.status')]
     const rows: string[][] = []
 
     for (const item of categoryItems) {
@@ -69,7 +70,7 @@ export function renderInventory(items: InventoryItem[]): string {
         )
 
         if (daysUntilExpiry < 0) {
-          statusStr = '🔴 Abgelaufen'
+          statusStr = t('tpl.inventory.expired')
         } else if (daysUntilExpiry <= warningDays) {
           statusStr = `⚠️ ${daysUntilExpiry}d`
         }
@@ -81,7 +82,7 @@ export function renderInventory(items: InventoryItem[]): string {
         item.min_quantity > 0 &&
         item.quantity <= item.min_quantity
       ) {
-        statusStr += ' 📉 Nachkaufen'
+        statusStr += ` ${t('tpl.inventory.restock')}`
       }
 
       rows.push([

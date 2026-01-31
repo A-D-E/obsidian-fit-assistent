@@ -2,6 +2,8 @@
  * Shared template utilities for Markdown generation.
  */
 
+import { t } from '../i18n'
+
 /**
  * Renders YAML frontmatter from a key-value object.
  */
@@ -154,16 +156,16 @@ export function getBPStatus(
   diastolic: number,
 ): { label: string; emoji: string } {
   if (systolic < 120 && diastolic < 80)
-    return { label: 'Optimal', emoji: '🟢' }
+    return { label: t('tpl.bp.optimal'), emoji: '🟢' }
   if (systolic < 130 && diastolic < 85)
-    return { label: 'Normal', emoji: '🟡' }
+    return { label: t('tpl.bp.normal'), emoji: '🟡' }
   if (systolic < 140 && diastolic < 90)
-    return { label: 'Hoch-Normal', emoji: '🟠' }
+    return { label: t('tpl.bp.high_normal'), emoji: '🟠' }
   if (systolic < 160 && diastolic < 100)
-    return { label: 'Grad 1', emoji: '🔴' }
+    return { label: t('tpl.bp.grade_1'), emoji: '🔴' }
   if (systolic < 180 && diastolic < 110)
-    return { label: 'Grad 2', emoji: '🔴' }
-  return { label: 'Grad 3', emoji: '🔴' }
+    return { label: t('tpl.bp.grade_2'), emoji: '🔴' }
+  return { label: t('tpl.bp.grade_3'), emoji: '🔴' }
 }
 
 /**
@@ -185,41 +187,30 @@ export function getCategoryEmoji(
 }
 
 /**
- * Returns a German label for inventory categories.
+ * Returns a localized label for inventory categories.
  */
 export function getCategoryLabel(
   category: 'fridge' | 'freezer' | 'pantry',
 ): string {
   switch (category) {
     case 'fridge':
-      return 'Kühlschrank'
+      return t('tpl.cat.fridge')
     case 'freezer':
-      return 'Tiefkühler'
+      return t('tpl.cat.freezer')
     case 'pantry':
-      return 'Vorratskammer'
+      return t('tpl.cat.pantry')
     default:
-      return 'Sonstiges'
+      return t('tpl.cat.other')
   }
 }
 
 /**
- * Returns a German label for shopping categories.
+ * Returns a localized label for shopping categories.
  */
 export function getShoppingCategoryLabel(category: string): string {
-  const labels: Record<string, string> = {
-    produce: '🥬 Obst & Gemüse',
-    grains: '🌾 Getreide & Hülsenfrüchte',
-    protein: '🥜 Proteinquellen',
-    dairy: '🥛 Milchalternativen',
-    bakery: '🍞 Backwaren',
-    cheese: '🧀 Käse',
-    meat: '🥩 Fleisch & Alternativen',
-    spices: '🧂 Gewürze & Öle',
-    frozen: '❄️ Tiefkühl',
-    household: '🧹 Haushalt',
-    other: '📦 Sonstiges',
-  }
-  return labels[category] ?? category
+  const key = `tpl.shop.${category}`
+  const result = t(key)
+  return result === key ? category : result
 }
 
 /**
@@ -238,18 +229,10 @@ export function renderProgressBar(
 }
 
 /**
- * Generates a German weekday label from an ISO date string.
+ * Generates a localized weekday label from an ISO date string.
  */
 export function getWeekdayLabel(date: string): string {
-  const days = [
-    'Sonntag',
-    'Montag',
-    'Dienstag',
-    'Mittwoch',
-    'Donnerstag',
-    'Freitag',
-    'Samstag',
-  ]
   const d = new Date(date)
-  return days[d.getDay()] ?? ''
+  const dayIndex = d.getDay()
+  return t(`tpl.weekday.${dayIndex}`)
 }

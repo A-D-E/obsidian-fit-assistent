@@ -1,3 +1,4 @@
+import { t } from '../i18n'
 import type { ShoppingItem } from '../types'
 import {
   getShoppingCategoryLabel,
@@ -23,15 +24,15 @@ export function renderShoppingList(items: ShoppingItem[]): string {
     }),
   )
 
-  sections.push('# Einkaufsliste')
+  sections.push(`# ${t('tpl.shopping.title')}`)
 
   if (items.length === 0) {
-    sections.push('*Keine Artikel auf der Einkaufsliste.*')
+    sections.push(`*${t('tpl.shopping.empty')}*`)
     return sections.join('\n\n')
   }
 
   // Progress bar
-  sections.push(`**Fortschritt:** ${renderProgressBar(checkedCount, items.length)}`)
+  sections.push(`**${t('tpl.progress')}:** ${renderProgressBar(checkedCount, items.length)}`)
 
   // Group by category
   const categoryOrder = [
