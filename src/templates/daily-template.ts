@@ -1,0 +1,218 @@
+import type {
+  DailyData,
+  Medication,
+  UserProfile,
+} from '../types'
+import {
+  formatDate,
+  formatNumber,
+  getBPStatus,
+  getMedLogEmoji,
+  getWeekdayLabel,
+  renderFrontmatter,
+  renderTable,
+} from './template-utils'
+
+/**
+ * Renders a Daily Note aggregating meals, water, weight, medication logs, and blood pressure.
+ */
+export function renderDailyNote(
+  data: DailyData,
+  profile: UserProfile | null,
+  medicationMap: Map<string, Medication>,
+): string {
+  const sections: string[] = []
+  const weekday = getWeekdayLabel(data.date)
+
+  // Frontmatter
+  sections.push(
+    renderFrontmatter({
+      date: data.date,
+      weekday,
+      meals: data.meals.length,
+      water_entries: data.waterLogs.length,
+      synced: new Date().toISOString(),
+    }),
+  )
+
+  sections.push(`# ${weekday}, ${formatDate(data.date)}`)
+
+  // --- Weight ---
+  if (data.weightLogs.length > 0) {
+    sections.push('## ⚖️ Gewicht')
+    for (const log of data.weightLogs) {
+      sections.push(`**${formatNumber(log.weight)} kg**`)
+    }
+  }
+
+  // --- Meals ---
+  if (data.meals.length > 0) {
+    sections.push('## 🍽️ Mahlzeiten')
+
+    const mealRows: string[][] = []
+    let totalCal = 0
+    let totalProtein = 0
+    let totalCarbs = 0
+    let totalFat = 0
+
+    for (const meal of data.meals) {
+      mealRows.push([
+        meal.description,
+        `${meal.calories}`,
+        `${formatNumber(meal.protein)}`,
+        `${formatNumber(meal.carbs)}`,
+        `${formatNumber(meal.fat)}`,
+      ])
+      totalCal += meal.calories
+      totalProtein += meal.protein
+      totalCarbs += meal.carbs
+      totalFat += meal.fat
+    }
+
+    // Summary row
+    mealRows.push([
+      '**Gesamt**',
+      `**${totalCal}**`,
+      `**${formatNumber(totalProtein)}**`,
+      `**${formatNumber(totalCarbs)}**`,
+      `**${formatNumber(totalFat)}**`,
+    ])
+
+    sections.push(
+      renderTable(
+        ['Mahlzeit', 'kcal', 'Protein (g)', 'KH (g)', 'Fett (g)'],
+        mealRows,
+        ['left', 'right', 'right', 'right', 'right'],
+      ),
+    )
+
+    // Goal comparison if strategy exists
+    if (profile?.strategy) {
+      sections.push('### Ziel-Vergleich')
+      const strategy = profile.strategy
+
+      const calDiff = totalCal - strategy.daily_calories
+      const proteinDiff = totalProtein - strategy.protein_target
+      const carbDiff = totalCarbs - strategy.carb_target
+      const fatDiff = totalFat - strategy.fat_target
+
+      sections.push(
+        renderTable(
+          ['Nährstoff', 'Ist', 'Ziel', 'Differenz'],
+          [
+            [
+              'Kalorien',
+              `${totalCal} kcal`,
+              `${strategy.daily_calories} kcal`,
+              `${calDiff >= 0 ? '+' : ''}${calDiff} kcal`,
+            ],
+            [
+              'Protein',
+              `${formatNumber(totalProtein)} g`,
+              `${formatNumber(strategy.protein_target)} g`,
+              `${proteinDiff >= 0 ? '+' : ''}${formatNumber(proteinDiff)} g`,
+            ],
+            [
+              'Kohlenhydrate',
+              `${formatNumber(totalCarbs)} g`,
+              `${formatNumber(strategy.carb_target)} g`,
+              `${carbDiff >= 0 ? '+' : ''}${formatNumber(carbDiff)} g`,
+            ],
+            [
+              'Fett',
+              `${formatNumber(totalFat)} g`,
+              `${formatNumber(strategy.fat_target)} g`,
+              `${fatDiff >= 0 ? '+' : ''}${formatNumber(fatDiff)} g`,
+            ],
+          ],
+          ['left', 'right', 'right', 'right'],
+        ),
+      )
+    }
+  }
+
+  // --- Water ---
+  if (data.waterLogs.length > 0) {
+    sections.push('## 💧 Wasser')
+
+    const totalWater = data.waterLogs.reduce((sum, log) => sum + log.amount, 0)
+    const goal = profile?.water_settings?.daily_goal ?? 2500
+
+    const pct = Math.round((totalWater / goal) * 100)
+    sections.push(`**${totalWater} ml** / ${goal} ml (${pct}%)`)
+
+    if (data.waterLogs.length > 1) {
+      const waterRows = data.waterLogs.map((log) => [
+        formatDate(log.timestamp, 'time'),
+        `${log.amount} ml`,
+      ])
+      sections.push(renderTable(['Uhrzeit', 'Menge'], waterRows))
+    }
+  }
+
+  // --- Medication Logs ---
+  if (data.medicationLogs.length > 0) {
+    sections.push('## 💊 Medikamente')
+
+    const medRows: string[][] = []
+    for (const log of data.medicationLogs) {
+      const med = medicationMap.get(log.medication_id)
+      const medName = med?.name ?? log.medication_id
+      const emoji = getMedLogEmoji(log.status)
+      const time = log.actual_time ?? log.scheduled_time
+
+      medRows.push([emoji, medName, time, log.status])
+    }
+
+    sections.push(
+      renderTable(['', 'Medikament', 'Uhrzeit', 'Status'], medRows),
+    )
+  }
+
+  // --- Blood Pressure ---
+  if (data.bloodPressureLogs.length > 0) {
+    sections.push('## ❤️ Blutdruck')
+
+    const bpRows: string[][] = []
+    for (const log of data.bloodPressureLogs) {
+      const time = formatDate(log.measured_at, 'time')
+      const bp = getBPStatus(log.systolic, log.diastolic)
+      const pulse = log.pulse != null ? `${log.pulse} bpm` : '–'
+      const period = log.period
+        ? log.period === 'morning'
+          ? '🌅'
+          : log.period === 'evening'
+            ? '🌙'
+            : '🕐'
+        : ''
+
+      bpRows.push([
+        `${period} ${time}`,
+        `${log.systolic}/${log.diastolic}`,
+        `${bp.emoji} ${bp.label}`,
+        pulse,
+      ])
+
+      if (log.notes) {
+        bpRows.push(['', `*${log.notes}*`, '', ''])
+      }
+    }
+
+    sections.push(
+      renderTable(['Zeit', 'Blutdruck', 'Bewertung', 'Puls'], bpRows),
+    )
+  }
+
+  // Empty state
+  if (
+    data.meals.length === 0 &&
+    data.waterLogs.length === 0 &&
+    data.weightLogs.length === 0 &&
+    data.medicationLogs.length === 0 &&
+    data.bloodPressureLogs.length === 0
+  ) {
+    sections.push('*Keine Daten für diesen Tag.*')
+  }
+
+  return sections.join('\n\n')
+}
