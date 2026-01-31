@@ -3,10 +3,7 @@ import type { FitAssistentSettings, SyncState } from './types'
 export const PLUGIN_VERSION = '1.0.0'
 
 export const DEFAULT_SETTINGS: FitAssistentSettings = {
-  supabaseUrl: '',
-  supabaseAnonKey: '',
-  email: '',
-  password: '',
+  connectionToken: '',
 
   autoSync: true,
   syncIntervalMinutes: 15,
