@@ -1,0 +1,9 @@
+{
+  "id": "fit-assistent",
+  "name": "FitAssistent",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Synchronises data from the fit-assistent.me app as Markdown in your Vault.",
+  "author": "Fit Assistent",
+  "isDesktopOnly": false
+}

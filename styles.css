@@ -1,0 +1,53 @@
+/* FitAssistent Plugin Styles */
+
+.fit-assistent-settings .setting-section {
+  margin-bottom: 1.5em;
+}
+
+.fit-assistent-settings .setting-section-title {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.fit-assistent-settings .connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em;
+  border-radius: 4px;
+  margin-bottom: 1em;
+}
+
+.fit-assistent-settings .connection-status.connected {
+  background-color: var(--background-modifier-success);
+  color: var(--text-success);
+}
+
+.fit-assistent-settings .connection-status.disconnected {
+  background-color: var(--background-modifier-error);
+  color: var(--text-error);
+}
+
+.fit-assistent-settings .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.fit-assistent-settings .status-dot.connected {
+  background-color: var(--text-success);
+}
+
+.fit-assistent-settings .status-dot.disconnected {
+  background-color: var(--text-error);
+}
+
+.fit-assistent-settings .sync-info {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-top: 0.5em;
+}
