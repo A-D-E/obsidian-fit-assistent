@@ -33,7 +33,7 @@ export class FitAssistentSettingTab extends PluginSettingTab {
       cls: 'setting-section-title',
     })
 
-    const tokenSetting = new Setting(section)
+    new Setting(section)
       .setName(t('connection.token'))
       .setDesc(t('connection.token_desc'))
       .addTextArea((text) => {
