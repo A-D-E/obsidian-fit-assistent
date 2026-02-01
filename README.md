@@ -65,39 +65,40 @@
 
 | # | DE | EN | Tabelle / Table | Ausgabe / Output |
 |---|----|----|-----------------|------------------|
-| 1 | Rezepte | Recipes | `recipes` | `Rezepte/<Titel>.md` |
+| 1 | Rezepte | Recipes | `recipes` | `rezepte/<Titel>.md` |
 | 2 | Mahlzeiten | Meals | `meals` | Daily Note |
 | 3 | Wasser | Water | `water_logs` | Daily Note |
 | 4 | Gewicht | Weight | `weight_logs` | Daily Note |
-| 5 | Mealprep | Meal Prep | `mealprep_plans` | `Mealprep/KW<XX>-<YYYY>.md` |
+| 5 | Mealprep | Meal Prep | `mealprep_plans` | `mealprep/KW<XX>-<YYYY>.md` |
 | 6 | Profil | Profile | `profiles_decrypted` | `Profil.md` |
-| 7 | Inventar | Inventory | `inventory_items` | `Listen/Inventar.md` |
-| 8 | Medikamente | Medications | `medications_decrypted` | `Gesundheit/Medikamente.md` |
+| 7 | Inventar | Inventory | `inventory_items` | `listen/Inventar.md` |
+| 8 | Medikamente | Medications | `medications_decrypted` | `gesundheit/Medikamente.md` |
 | 9 | Med.-Logs | Med. Logs | `medication_logs_decrypted` | Daily Note |
 | 10 | Blutdruck | Blood Pressure | `blood_pressure_logs_decrypted` | Daily Note |
-| 11 | Einkaufsliste | Shopping List | `shopping_items` | `Listen/Einkaufsliste.md` |
+| 11 | Einkaufsliste | Shopping List | `shopping_items` | `listen/Einkaufsliste.md` |
 
 ---
 
 ## Vault-Struktur / Vault Structure
 
+By default, folders are created at vault root level with lowercase names. An optional base path can be configured in settings.
+
 ```
-FitAssistent/
-├── Rezepte/                 # Individuelle Rezept-Dateien / Individual recipe files
-│   ├── Protein-Pancakes.md
-│   └── ...
-├── Tracker/                 # Tagesnotizen / Daily notes
-│   └── 2026/01/
-│       ├── 2026-01-30.md
-│       └── 2026-01-31.md
-├── Mealprep/                # Mealprep-Pläne / Meal prep plans
-│   └── KW05-2026.md
-├── Gesundheit/              # Medikamente / Medications
-│   └── Medikamente.md
-├── Listen/                  # Inventar & Einkaufsliste / Inventory & shopping list
-│   ├── Inventar.md
-│   └── Einkaufsliste.md
-└── Profil.md                # Profildaten / Profile data
+rezepte/                     # Individuelle Rezept-Dateien / Individual recipe files
+├── Protein-Pancakes.md
+└── ...
+tracker/                     # Tagesnotizen / Daily notes
+└── 2026/01/
+    ├── 2026-01-30.md
+    └── 2026-01-31.md
+mealprep/                    # Mealprep-Pläne / Meal prep plans
+└── KW05-2026.md
+gesundheit/                  # Medikamente / Medications
+└── Medikamente.md
+listen/                      # Inventar & Einkaufsliste / Inventory & shopping list
+├── Inventar.md
+└── Einkaufsliste.md
+Profil.md                    # Profildaten / Profile data
 ```
 
 ---
@@ -107,16 +108,16 @@ FitAssistent/
 ### Manuell / Manual
 
 **[DE]**
-1. Lade `main.js`, `manifest.json` und `styles.css` aus dem Repository
+1. Lade `main.js`, `manifest.json` und `styles.css` aus dem [neuesten Release](https://github.com/A-D-E/obsidian-fit-assistent/releases/latest)
 2. Erstelle den Ordner `.obsidian/plugins/fit-assistent/` in deinem Vault
 3. Kopiere die drei Dateien dort hinein
-4. Obsidian neustarten und das Plugin unter Einstellungen > Community Plugins aktivieren
+4. Obsidian neustarten und das Plugin unter Einstellungen → Community Plugins aktivieren
 
 **[EN]**
-1. Download `main.js`, `manifest.json`, and `styles.css` from the repository
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/A-D-E/obsidian-fit-assistent/releases/latest)
 2. Create the folder `.obsidian/plugins/fit-assistent/` in your vault
 3. Copy the three files into it
-4. Restart Obsidian and enable the plugin under Settings > Community Plugins
+4. Restart Obsidian and enable the plugin under Settings → Community Plugins
 
 ---
 
@@ -124,35 +125,33 @@ FitAssistent/
 
 **[DE]**
 1. Plugin-Einstellungen öffnen
-2. **Supabase URL** und **Anon Key** deiner Self-Hosted-Instanz eingeben
-3. **E-Mail** und **Passwort** deines FitAssistent-Accounts eingeben
-4. Auf **Anmelden** klicken
-5. **Full Sync** starten — fertig!
+2. **Verbindungstoken** eingeben — generiert in der FitAssistent-App unter *Einstellungen → API-Zugangstoken*
+3. Auf **Verbinden** klicken
+4. **Full Sync** starten — fertig!
 
 **[EN]**
 1. Open plugin settings
-2. Enter the **Supabase URL** and **Anon Key** of your self-hosted instance
-3. Enter the **email** and **password** of your FitAssistent account
-4. Click **Sign In**
-5. Start **Full Sync** — done!
+2. Enter your **Connection Token** — generated in the FitAssistent app under *Settings → API Access Tokens*
+3. Click **Connect**
+4. Start **Full Sync** — done!
 
 ---
 
 ## Einstellungen / Settings
 
 **[DE]**
-- **Verbindung** — Supabase-URL, Anon Key, Login
+- **Verbindung** — Verbindungstoken, Verbinden/Trennen
 - **Synchronisation** — Auto-Sync, Intervall, Realtime an/aus
 - **Inhalte** — Individuelle Toggles für alle 11 Datentypen
-- **Ordner** — Basis-Ordner und Unterordner konfigurierbar
+- **Ordner** — Basis-Ordner (optional) und Unterordner konfigurierbar
 - **Anzeige** — Statusleiste, Nährwert-Ziele in Tagesnotizen
 - **Erweitert** — Sync-State zurücksetzen
 
 **[EN]**
-- **Connection** — Supabase URL, anon key, login
+- **Connection** — Connection token, connect/disconnect
 - **Sync** — Auto-sync, interval, realtime on/off
 - **Content** — Individual toggles for all 11 data types
-- **Folders** — Base folder and subfolders configurable
+- **Folders** — Base folder (optional) and subfolders configurable
 - **Display** — Status bar, nutrition goals in daily notes
 - **Advanced** — Reset sync state
 
@@ -166,7 +165,7 @@ git clone https://github.com/A-D-E/obsidian-fit-assistent.git
 cd obsidian-fit-assistent
 
 # Abhängigkeiten installieren / Install dependencies
-bun install
+bun install   # or: npm install
 
 # Entwicklungs-Build / Development build (watch mode)
 bun run dev
@@ -199,8 +198,10 @@ src/
 ├── settings.ts                  # Settings Tab UI
 ├── types.ts                     # Alle Interfaces / All interfaces
 ├── constants.ts                 # Default-Werte / Default values
+├── i18n.ts                      # Übersetzungen DE/EN / Translations DE/EN
 ├── api/
 │   ├── supabase-client.ts       # Supabase + CORS-Bypass
+│   ├── token.ts                 # Connection Token Decoder
 │   └── data-service.ts          # Queries (11 Datentypen / data types)
 ├── sync/
 │   ├── sync-engine.ts           # Full/Incremental/Single-Item Sync

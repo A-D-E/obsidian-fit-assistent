@@ -9,7 +9,7 @@
     "deploy": "node esbuild.config.mjs production && cp main.js manifest.json styles.css \"$HOME/Documents/Obsidian/.obsidian/plugins/fit-assistent/\""
   },
   "keywords": [],
-  "author": "q23.ada",
+  "author": "Andrej Daiker",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.0.0",
