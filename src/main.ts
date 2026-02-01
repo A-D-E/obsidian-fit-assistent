@@ -1,6 +1,6 @@
 import { Notice, Plugin } from 'obsidian'
 import type { FitAssistentSettings, SyncResult, SyncState } from './types'
-import { DEFAULT_SETTINGS, DEFAULT_SYNC_STATE } from './constants'
+import { DEFAULT_SETTINGS, DEFAULT_SYNC_STATE, LEGACY_FOLDER_DEFAULTS } from './constants'
 import { initLocale, t } from './i18n'
 import {
   authenticateWithPat,
@@ -43,6 +43,7 @@ export default class FitAssistentPlugin extends Plugin {
     initLocale((this.app as unknown as { locale: string }).locale)
 
     await this.loadSettings()
+    await this.migrateSettingsIfNeeded()
 
     // Initialize sync state manager
     this.syncState = new SyncStateManager(
@@ -125,6 +126,44 @@ export default class FitAssistentPlugin extends Plugin {
 
     this.vaultManager?.updateSettings(this.settings)
     this.syncEngine?.updateSettings(this.settings)
+  }
+
+  // --- Settings Migration ---
+
+  /**
+   * Migrate legacy folder settings to new lowercase defaults.
+   * Only touches values that EXACTLY match the old defaults —
+   * custom user paths are left untouched.
+   */
+  private async migrateSettingsIfNeeded(): Promise<void> {
+    const s = this.settings
+    const legacy = LEGACY_FOLDER_DEFAULTS
+
+    const isLegacy =
+      s.basePath === legacy.basePath &&
+      s.recipesFolder === legacy.recipesFolder &&
+      s.trackerFolder === legacy.trackerFolder &&
+      s.mealprepFolder === legacy.mealprepFolder &&
+      s.healthFolder === legacy.healthFolder &&
+      s.listsFolder === legacy.listsFolder
+
+    if (!isLegacy) return
+
+    // Apply new defaults
+    s.basePath = DEFAULT_SETTINGS.basePath
+    s.recipesFolder = DEFAULT_SETTINGS.recipesFolder
+    s.trackerFolder = DEFAULT_SETTINGS.trackerFolder
+    s.mealprepFolder = DEFAULT_SETTINGS.mealprepFolder
+    s.healthFolder = DEFAULT_SETTINGS.healthFolder
+    s.listsFolder = DEFAULT_SETTINGS.listsFolder
+
+    await this.saveSettings()
+
+    console.log(
+      '[FitAssistent] Settings migrated from legacy defaults ' +
+        `(basePath="${legacy.basePath}") to new defaults ` +
+        `(basePath="${s.basePath || '(vault root)'}", lowercase folders).`,
+    )
   }
 
   // --- Connection ---
