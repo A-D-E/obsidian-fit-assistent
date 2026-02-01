@@ -21,12 +21,12 @@ export const DEFAULT_SETTINGS: FitAssistentSettings = {
   syncShoppingList: true,
   syncMedicationLogs: true,
 
-  basePath: 'FitAssistent',
-  recipesFolder: 'Rezepte',
-  trackerFolder: 'Tracker',
-  mealprepFolder: 'Mealprep',
-  healthFolder: 'Gesundheit',
-  listsFolder: 'Listen',
+  basePath: '',
+  recipesFolder: 'rezepte',
+  trackerFolder: 'tracker',
+  mealprepFolder: 'mealprep',
+  healthFolder: 'gesundheit',
+  listsFolder: 'listen',
   profileFileName: 'Profil.md',
 
   showStatusBar: true,

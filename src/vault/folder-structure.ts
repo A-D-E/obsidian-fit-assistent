@@ -21,7 +21,16 @@ export async function ensureFolderExists(
 }
 
 /**
- * Creates the full FitAssistent folder structure in the vault.
+ * Joins a base path with a subfolder, handling empty base gracefully.
+ */
+export function joinPath(base: string, sub: string): string {
+  if (!base) return sub
+  return `${base}/${sub}`
+}
+
+/**
+ * Creates the full folder structure in the vault.
+ * If basePath is empty, folders are created at vault root level.
  */
 export async function createFolderStructure(
   vault: Vault,
@@ -34,10 +43,12 @@ export async function createFolderStructure(
     lists: string
   },
 ): Promise<void> {
-  await ensureFolderExists(vault, basePath)
-  await ensureFolderExists(vault, `${basePath}/${folders.recipes}`)
-  await ensureFolderExists(vault, `${basePath}/${folders.tracker}`)
-  await ensureFolderExists(vault, `${basePath}/${folders.mealprep}`)
-  await ensureFolderExists(vault, `${basePath}/${folders.health}`)
-  await ensureFolderExists(vault, `${basePath}/${folders.lists}`)
+  if (basePath) {
+    await ensureFolderExists(vault, basePath)
+  }
+  await ensureFolderExists(vault, joinPath(basePath, folders.recipes))
+  await ensureFolderExists(vault, joinPath(basePath, folders.tracker))
+  await ensureFolderExists(vault, joinPath(basePath, folders.mealprep))
+  await ensureFolderExists(vault, joinPath(basePath, folders.health))
+  await ensureFolderExists(vault, joinPath(basePath, folders.lists))
 }

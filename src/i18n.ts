@@ -244,52 +244,52 @@ const translations: Record<string, Record<Locale, string>> = {
     en: 'Folders',
   },
   'folders.base': {
-    de: 'Basis-Ordner',
-    en: 'Base Folder',
+    de: 'Basis-Ordner (optional)',
+    en: 'Base Folder (optional)',
   },
   'folders.base_desc': {
-    de: 'Hauptordner für alle FitAssistent-Daten',
-    en: 'Root folder for all FitAssistent data',
+    de: 'Optionaler Prefix-Ordner. Leer lassen = Ordner direkt im Vault-Root',
+    en: 'Optional prefix folder. Leave empty = folders at vault root level',
   },
   'folders.recipes': {
-    de: 'Rezepte',
-    en: 'Recipes',
+    de: 'Rezepte-Ordner',
+    en: 'Recipes Folder',
   },
   'folders.recipes_desc': {
-    de: 'Unterordner für Rezepte',
-    en: 'Subfolder for recipes',
+    de: 'Ordner für Rezepte',
+    en: 'Folder for recipes',
   },
   'folders.tracker': {
-    de: 'Tracker',
-    en: 'Tracker',
+    de: 'Tracker-Ordner',
+    en: 'Tracker Folder',
   },
   'folders.tracker_desc': {
-    de: 'Unterordner für Tagesnotizen',
-    en: 'Subfolder for daily notes',
+    de: 'Ordner für Tagesnotizen',
+    en: 'Folder for daily notes',
   },
   'folders.mealprep': {
-    de: 'Mealprep',
-    en: 'Meal Prep',
+    de: 'Mealprep-Ordner',
+    en: 'Meal Prep Folder',
   },
   'folders.mealprep_desc': {
-    de: 'Unterordner für Mealprep-Pläne',
-    en: 'Subfolder for meal prep plans',
+    de: 'Ordner für Mealprep-Pläne',
+    en: 'Folder for meal prep plans',
   },
   'folders.health': {
-    de: 'Gesundheit',
-    en: 'Health',
+    de: 'Gesundheit-Ordner',
+    en: 'Health Folder',
   },
   'folders.health_desc': {
-    de: 'Unterordner für Medikamente',
-    en: 'Subfolder for medications',
+    de: 'Ordner für Medikamente',
+    en: 'Folder for medications',
   },
   'folders.lists': {
-    de: 'Listen',
-    en: 'Lists',
+    de: 'Listen-Ordner',
+    en: 'Lists Folder',
   },
   'folders.lists_desc': {
-    de: 'Unterordner für Inventar & Einkaufsliste',
-    en: 'Subfolder for inventory & shopping list',
+    de: 'Ordner für Inventar & Einkaufsliste',
+    en: 'Folder for inventory & shopping list',
   },
 
   // --- Display ---

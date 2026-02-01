@@ -1,7 +1,7 @@
 import { type Vault, normalizePath } from 'obsidian'
 import type { FitAssistentSettings, MealPrepPlan, Recipe } from '../types'
 import { sanitizeFilename } from '../templates/template-utils'
-import { ensureFolderExists } from './folder-structure'
+import { ensureFolderExists, joinPath } from './folder-structure'
 
 /**
  * Manages file creation/update operations in the Obsidian vault.
@@ -25,17 +25,22 @@ export class VaultManager {
     return this.settings.basePath
   }
 
+  /**
+   * Joins the base path with a relative path, handling empty base.
+   */
+  private resolvePath(relativePath: string): string {
+    return normalizePath(joinPath(this.base, relativePath))
+  }
+
   getRecipePath(recipe: Recipe): string {
     const title = sanitizeFilename(recipe.title || 'Unbekanntes Rezept')
-    return normalizePath(
-      `${this.base}/${this.settings.recipesFolder}/${title}.md`,
-    )
+    return this.resolvePath(`${this.settings.recipesFolder}/${title}.md`)
   }
 
   getDailyNotePath(date: string): string {
     const [year, month] = date.split('-')
-    return normalizePath(
-      `${this.base}/${this.settings.trackerFolder}/${year}/${month}/${date}.md`,
+    return this.resolvePath(
+      `${this.settings.trackerFolder}/${year}/${month}/${date}.md`,
     )
   }
 
@@ -46,31 +51,23 @@ export class VaultManager {
     const name = plan.name
       ? sanitizeFilename(plan.name)
       : `KW${String(weekNumber).padStart(2, '0')}-${year}`
-    return normalizePath(
-      `${this.base}/${this.settings.mealprepFolder}/${name}.md`,
-    )
+    return this.resolvePath(`${this.settings.mealprepFolder}/${name}.md`)
   }
 
   getProfilePath(): string {
-    return normalizePath(`${this.base}/${this.settings.profileFileName}`)
+    return this.resolvePath(this.settings.profileFileName)
   }
 
   getInventoryPath(): string {
-    return normalizePath(
-      `${this.base}/${this.settings.listsFolder}/Inventar.md`,
-    )
+    return this.resolvePath(`${this.settings.listsFolder}/Inventar.md`)
   }
 
   getMedicationsPath(): string {
-    return normalizePath(
-      `${this.base}/${this.settings.healthFolder}/Medikamente.md`,
-    )
+    return this.resolvePath(`${this.settings.healthFolder}/Medikamente.md`)
   }
 
   getShoppingListPath(): string {
-    return normalizePath(
-      `${this.base}/${this.settings.listsFolder}/Einkaufsliste.md`,
-    )
+    return this.resolvePath(`${this.settings.listsFolder}/Einkaufsliste.md`)
   }
 
   // --- File Operations ---
