@@ -172,6 +172,9 @@ bun run dev
 
 # Produktions-Build / Production build
 bun run build
+
+# Build + kopieren ins Obsidian Vault / Build + copy to Obsidian vault
+bun run deploy
 ```
 
 ### Testen / Testing
