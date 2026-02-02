@@ -1,3 +1,4 @@
+import { CROSS_LINKS } from '../constants'
 import { t } from '../i18n'
 import type { Medication } from '../types'
 import {
@@ -25,8 +26,11 @@ export function renderMedications(medications: Medication[]): string {
 
   sections.push(`# ${t('tpl.meds.title')}`)
 
+  sections.push(`> Einnahme-Protokoll: [[${CROSS_LINKS.trackerOverview}|📊 Tracker]]`)
+
   if (medications.length === 0) {
     sections.push(`*${t('tpl.meds.empty')}*`)
+    sections.push(`---\n[[${CROSS_LINKS.healthHome}|💊 Gesundheit]] | [[${CROSS_LINKS.home}|← Zurück]]`)
     return sections.join('\n\n')
   }
 
@@ -88,6 +92,9 @@ export function renderMedications(medications: Medication[]): string {
       }
     }
   }
+
+  // --- Footer Navigation ---
+  sections.push(`---\n[[${CROSS_LINKS.healthHome}|💊 Gesundheit]] | [[${CROSS_LINKS.home}|← Zurück]]`)
 
   return sections.join('\n\n')
 }

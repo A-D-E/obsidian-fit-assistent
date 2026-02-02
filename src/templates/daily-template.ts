@@ -1,3 +1,4 @@
+import { CROSS_LINKS, dailyNoteLinkPath } from '../constants'
 import { t } from '../i18n'
 import type {
   DailyData,
@@ -13,6 +14,16 @@ import {
   renderFrontmatter,
   renderTable,
 } from './template-utils'
+
+/**
+ * Returns the adjacent date (prev/next) as a YYYY-MM-DD string.
+ * Uses UTC noon to avoid DST edge cases.
+ */
+function getAdjacentDate(dateStr: string, offsetDays: number): string {
+  const date = new Date(`${dateStr}T12:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + offsetDays)
+  return date.toISOString().slice(0, 10)
+}
 
 /**
  * Renders a Daily Note aggregating meals, water, weight, medication logs, and blood pressure.
@@ -153,7 +164,7 @@ export function renderDailyNote(
 
   // --- Medication Logs ---
   if (data.medicationLogs.length > 0) {
-    sections.push(`## ${t('tpl.daily.medications')}`)
+    sections.push(`## 💊 [[${CROSS_LINKS.medications}|${t('tpl.meds.type_medication')}]]`)
 
     const medRows: string[][] = []
     for (const log of data.medicationLogs) {
@@ -214,6 +225,15 @@ export function renderDailyNote(
   ) {
     sections.push(`*${t('tpl.daily.no_data')}*`)
   }
+
+  // --- Navigation ---
+  const prevDate = getAdjacentDate(data.date, -1)
+  const nextDate = getAdjacentDate(data.date, 1)
+  const prevLink = `[[${dailyNoteLinkPath(prevDate)}|← ${prevDate}]]`
+  const nextLink = `[[${dailyNoteLinkPath(nextDate)}|${nextDate} →]]`
+  const overviewLink = `[[${CROSS_LINKS.trackerOverview}|📊 Übersicht]]`
+
+  sections.push(`---\n${prevLink} | ${overviewLink} | ${nextLink}`)
 
   return sections.join('\n\n')
 }
