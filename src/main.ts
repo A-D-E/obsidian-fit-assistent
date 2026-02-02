@@ -33,10 +33,15 @@ export default class FitAssistentPlugin extends Plugin {
   private realtimeManager: RealtimeManager | null = null
   private autoSyncInterval: ReturnType<typeof setInterval> | null = null
   private jwtRefreshInterval: ReturnType<typeof setInterval> | null = null
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null
   private statusBarEl: HTMLElement | null = null
   private decodedUrl = ''
   private decodedAnonKey = ''
   private decodedSecret = ''
+  private lastResumeTime = 0
+  private readonly RESUME_DEBOUNCE_MS = 30_000
+  private readonly HEALTH_CHECK_INTERVAL_MS = 5 * 60 * 1000
+  private boundVisibilityHandler: (() => void) | null = null
 
   async onload(): Promise<void> {
     // Detect locale from Obsidian's language setting
@@ -109,6 +114,8 @@ export default class FitAssistentPlugin extends Plugin {
     this.stopAutoSync()
     this.stopJwtRefresh()
     this.stopRealtime()
+    this.stopHealthCheck()
+    this.removeVisibilityListener()
     destroyClient()
   }
 
@@ -237,6 +244,10 @@ export default class FitAssistentPlugin extends Plugin {
         this.startRealtime()
       }
 
+      // iOS catch-up: listen for app resume + periodic health check
+      this.registerVisibilityListener()
+      this.startHealthCheck()
+
       return { success: true }
     } catch (e) {
       this.isConnected = false
@@ -250,6 +261,8 @@ export default class FitAssistentPlugin extends Plugin {
     this.stopAutoSync()
     this.stopJwtRefresh()
     this.stopRealtime()
+    this.stopHealthCheck()
+    this.removeVisibilityListener()
 
     destroyClient()
     this.dataService = null
@@ -427,6 +440,93 @@ export default class FitAssistentPlugin extends Plugin {
     if (this.realtimeManager) {
       this.realtimeManager.unsubscribeAll()
       this.realtimeManager = null
+    }
+  }
+
+  // --- App Resume / iOS Catch-up ---
+
+  /**
+   * Registers the visibilitychange listener so the plugin can
+   * catch up when iOS (or any OS) brings the app back to foreground.
+   */
+  private registerVisibilityListener(): void {
+    this.removeVisibilityListener()
+
+    this.boundVisibilityHandler = () => {
+      if (document.visibilityState === 'visible') {
+        this.onAppResume()
+      }
+    }
+
+    document.addEventListener('visibilitychange', this.boundVisibilityHandler)
+  }
+
+  private removeVisibilityListener(): void {
+    if (this.boundVisibilityHandler) {
+      document.removeEventListener(
+        'visibilitychange',
+        this.boundVisibilityHandler,
+      )
+      this.boundVisibilityHandler = null
+    }
+  }
+
+  /**
+   * Called when the app comes back to the foreground.
+   * Reconnects realtime channels and runs a quick delta sync.
+   * Debounced: fires at most once per RESUME_DEBOUNCE_MS (30s).
+   */
+  private async onAppResume(): Promise<void> {
+    if (!this.isConnected) return
+
+    const now = Date.now()
+    if (now - this.lastResumeTime < this.RESUME_DEBOUNCE_MS) {
+      return
+    }
+    this.lastResumeTime = now
+
+    console.log('[FitAssistent] App resumed — reconnecting & syncing')
+
+    // 1. Reconnect realtime channels
+    if (this.settings.realtimeEnabled && this.realtimeManager) {
+      this.realtimeManager.reconnectAll()
+    }
+
+    // 2. Quick delta sync (incremental — only changes since last sync)
+    try {
+      await this.runIncrementalSync()
+    } catch (e) {
+      console.error('[FitAssistent] Delta sync on resume failed:', e)
+    }
+  }
+
+  // --- Periodic Health Check ---
+
+  private startHealthCheck(): void {
+    this.stopHealthCheck()
+
+    this.healthCheckInterval = setInterval(() => {
+      if (
+        !this.isConnected ||
+        !this.settings.realtimeEnabled ||
+        !this.realtimeManager
+      ) {
+        return
+      }
+
+      if (!this.realtimeManager.isHealthy()) {
+        console.warn(
+          '[FitAssistent] Health check: channels unhealthy — reconnecting',
+        )
+        this.realtimeManager.reconnectAll()
+      }
+    }, this.HEALTH_CHECK_INTERVAL_MS)
+  }
+
+  private stopHealthCheck(): void {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval)
+      this.healthCheckInterval = null
     }
   }
 
