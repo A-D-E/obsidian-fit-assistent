@@ -147,16 +147,23 @@ export function renderDailyNote(
   if (data.waterLogs.length > 0) {
     sections.push(`## ${t('tpl.daily.water')}`)
 
-    const totalWater = data.waterLogs.reduce((sum, log) => sum + log.amount, 0)
-    const goal = profile?.water_settings?.daily_goal ?? 2500
+    const rawTotal = data.waterLogs.reduce((sum, log) => sum + log.amount, 0)
+    const goalMl = profile?.water_settings?.daily_goal ?? 2500
 
-    const pct = Math.round((totalWater / goal) * 100)
-    sections.push(`**${totalWater} ml** / ${goal} ml (${pct}%)`)
+    // Water amounts from Supabase may be in liters (e.g. 0.2) while goal is in ml (e.g. 2500)
+    const isLiters = rawTotal > 0 && rawTotal < goalMl / 100
+    const toMl = (amount: number) => isLiters ? Math.round(amount * 1000) : Math.round(amount)
+    const formatWater = (ml: number) => ml >= 1000 ? `${(ml / 1000).toFixed(1)} L` : `${ml} ml`
+
+    const totalMl = toMl(rawTotal)
+    const goalDisplay = formatWater(goalMl)
+    const pct = Math.round((totalMl / goalMl) * 100)
+    sections.push(`**${formatWater(totalMl)}** / ${goalDisplay} (${pct}%)`)
 
     if (data.waterLogs.length > 1) {
       const waterRows = data.waterLogs.map((log) => [
         formatDate(log.timestamp, 'time'),
-        `${log.amount} ml`,
+        `${toMl(log.amount)} ml`,
       ])
       sections.push(renderTable([t('tpl.time'), t('tpl.amount')], waterRows))
     }
