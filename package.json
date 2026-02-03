@@ -1,6 +1,6 @@
 {
   "name": "obsidian-fit-assistent",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Obsidian plugin to sync FitAssistent data as Markdown",
   "main": "main.js",
   "scripts": {
