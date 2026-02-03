@@ -81,6 +81,6 @@ console.log('')
 run('git add package.json manifest.json versions.json')
 run(`git commit -m "chore(release): ${newVersion}"`)
 run(`git tag "${newVersion}"`)
-run('git push origin main --tags')
+run(`git push origin main "${newVersion}"`)
 
 console.log(`\n🚀 Released ${newVersion} — commit + tag pushed!\n`)
