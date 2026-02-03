@@ -1,12 +1,13 @@
 {
   "name": "obsidian-fit-assistent",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Obsidian plugin to sync FitAssistent data as Markdown",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
-    "deploy": "node esbuild.config.mjs production && cp main.js manifest.json styles.css \"$HOME/Documents/Obsidian/.obsidian/plugins/fit-assistent/\""
+    "deploy": "node esbuild.config.mjs production && cp main.js manifest.json styles.css \"$HOME/Documents/Obsidian/.obsidian/plugins/fit-assistent/\"",
+    "version": "node version-bump.mjs"
   },
   "keywords": [],
   "author": "Andrej Daiker",
