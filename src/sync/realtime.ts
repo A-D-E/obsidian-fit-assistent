@@ -15,6 +15,7 @@ interface ChannelInfo {
   status: ChannelStatus | 'PENDING'
   retryCount: number
   retryTimer: ReturnType<typeof setTimeout> | null
+  lastEventAt: number
 }
 
 /**
@@ -30,6 +31,7 @@ export class RealtimeManager {
   private readonly DEBOUNCE_MS = 2000
   private readonly MAX_RETRIES = 3
   private readonly BASE_RETRY_DELAY_MS = 2000
+  private readonly STALE_THRESHOLD_MS = 10 * 60 * 1000 // 10 min
 
   constructor(
     private client: SupabaseClient,
@@ -157,12 +159,35 @@ export class RealtimeManager {
   }
 
   /**
-   * Returns true if ALL channels are in SUBSCRIBED status.
+   * Propagates a new JWT to the Realtime WebSocket so existing
+   * channels keep working after a token refresh.
+   */
+  async setAuth(token: string): Promise<void> {
+    try {
+      this.client.realtime.setAuth(token)
+      console.log('[FitAssistent] Realtime: auth token updated')
+    } catch (e) {
+      console.warn(
+        '[FitAssistent] Realtime: setAuth failed, reconnecting all channels',
+        e,
+      )
+      this.reconnectAll()
+    }
+  }
+
+  /**
+   * Returns true if ALL channels are in SUBSCRIBED status
+   * and none are stale (no event received for >10 min).
    */
   isHealthy(): boolean {
     if (this.channels.length === 0) return false
 
-    return this.channels.every((info) => info.status === 'SUBSCRIBED')
+    const now = Date.now()
+    return this.channels.every(
+      (info) =>
+        info.status === 'SUBSCRIBED' &&
+        now - info.lastEventAt < this.STALE_THRESHOLD_MS,
+    )
   }
 
   // --- Private Helpers ---
@@ -170,6 +195,7 @@ export class RealtimeManager {
   private subscribeToTable(
     table: string,
     handler: (payload: RealtimePayload) => void,
+    retryCount = 0,
   ): void {
     const channel = this.client
       .channel(`fit-assistent-${table}`)
@@ -181,6 +207,7 @@ export class RealtimeManager {
           table,
         } as Record<string, string>,
         (payload: unknown) => {
+          info.lastEventAt = Date.now()
           try {
             handler(payload as RealtimePayload)
           } catch (e) {
@@ -193,8 +220,9 @@ export class RealtimeManager {
       table,
       channel,
       status: 'PENDING',
-      retryCount: 0,
+      retryCount,
       retryTimer: null,
+      lastEventAt: Date.now(),
     }
 
     this.channels.push(info)
@@ -202,6 +230,7 @@ export class RealtimeManager {
     // Subscribe with status callback for health tracking + auto-reconnect
     channel.subscribe((status: string, err?: Error) => {
       info.status = status as ChannelStatus
+      info.lastEventAt = Date.now()
 
       if (status === 'SUBSCRIBED') {
         // Successfully connected — reset retry counter
@@ -264,8 +293,8 @@ export class RealtimeManager {
         this.channels.splice(idx, 1)
       }
 
-      // Re-subscribe this single table (creates new ChannelInfo)
-      this.subscribeToTable(info.table, handler)
+      // Re-subscribe this single table (preserves retry count)
+      this.subscribeToTable(info.table, handler, info.retryCount)
     }, delay)
   }
 

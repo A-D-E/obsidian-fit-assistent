@@ -303,6 +303,10 @@ export default class FitAssistentPlugin extends Plugin {
         const client = getSupabaseClient(this.decodedUrl, this.decodedAnonKey)
         await setSessionFromJwt(client, authResult.access_token)
 
+        if (this.realtimeManager) {
+          await this.realtimeManager.setAuth(authResult.access_token)
+        }
+
         // Schedule next refresh
         this.setupJwtRefresh(authResult.expires_at)
       } catch {
