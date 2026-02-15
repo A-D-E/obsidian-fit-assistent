@@ -28,10 +28,12 @@ interface ChannelInfo {
 export class RealtimeManager {
   private channels: ChannelInfo[] = []
   private debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
+  private recoveryTimer: ReturnType<typeof setTimeout> | null = null
   private readonly DEBOUNCE_MS = 2000
   private readonly MAX_RETRIES = 3
   private readonly BASE_RETRY_DELAY_MS = 2000
   private readonly STALE_THRESHOLD_MS = 10 * 60 * 1000 // 10 min
+  private readonly RECOVERY_DELAY_MS = 30_000 // 30s full reconnect after all gave up
 
   constructor(
     private client: SupabaseClient,
@@ -135,6 +137,11 @@ export class RealtimeManager {
    * Unsubscribes from all channels and clears debounce/retry timers.
    */
   unsubscribeAll(): void {
+    if (this.recoveryTimer) {
+      clearTimeout(this.recoveryTimer)
+      this.recoveryTimer = null
+    }
+
     for (const info of this.channels) {
       if (info.retryTimer) {
         clearTimeout(info.retryTimer)
@@ -269,8 +276,9 @@ export class RealtimeManager {
     if (info.retryCount >= this.MAX_RETRIES) {
       console.error(
         `[FitAssistent] Realtime: ${info.table} channel gave up ` +
-          `after ${this.MAX_RETRIES} retries — waiting for manual reconnect`,
+          `after ${this.MAX_RETRIES} retries`,
       )
+      this.scheduleRecovery()
       return
     }
 
@@ -296,6 +304,32 @@ export class RealtimeManager {
       // Re-subscribe this single table (preserves retry count)
       this.subscribeToTable(info.table, handler, info.retryCount)
     }, delay)
+  }
+
+  /**
+   * Schedules a full reconnectAll() after RECOVERY_DELAY_MS.
+   * Only one recovery timer runs at a time — duplicate calls are no-ops.
+   */
+  private scheduleRecovery(): void {
+    if (this.recoveryTimer) return
+
+    const allGaveUp =
+      this.channels.length > 0 &&
+      this.channels.every(
+        (ch) => ch.retryCount >= this.MAX_RETRIES && !ch.retryTimer,
+      )
+
+    if (!allGaveUp) return
+
+    console.log(
+      `[FitAssistent] Realtime: all channels exhausted retries — ` +
+        `full reconnect in ${this.RECOVERY_DELAY_MS / 1000}s`,
+    )
+
+    this.recoveryTimer = setTimeout(() => {
+      this.recoveryTimer = null
+      this.reconnectAll()
+    }, this.RECOVERY_DELAY_MS)
   }
 
   private debounce(key: string, fn: () => Promise<void>): void {
