@@ -70,8 +70,8 @@ export class SyncEngine {
         }
       }
 
-      // 2. Load medications (needed for medication log name lookup)
-      if (this.settings.syncMedications) {
+      // 2. Load medications (needed for medication log name lookup in daily notes)
+      if (this.settings.syncMedications || this.settings.syncMedicationLogs) {
         onProgress?.(t('progress.medications'))
         try {
           const medications = await this.dataService.getMedications()
@@ -79,10 +79,12 @@ export class SyncEngine {
           for (const med of medications) {
             this.medicationMap.set(med.id, med)
           }
-          const content = renderMedications(medications)
-          const path = this.vaultManager.getMedicationsPath()
-          report(await this.vaultManager.createOrUpdateFile(path, content))
-          this.syncState.setFileMapping('medications', path)
+          if (this.settings.syncMedications) {
+            const content = renderMedications(medications)
+            const path = this.vaultManager.getMedicationsPath()
+            report(await this.vaultManager.createOrUpdateFile(path, content))
+            this.syncState.setFileMapping('medications', path)
+          }
         } catch (e) {
           this.addError('medications_decrypted', 'all', e)
         }
@@ -243,8 +245,8 @@ export class SyncEngine {
         }
       }
 
-      // Medications
-      if (this.settings.syncMedications) {
+      // Medications (always load for daily note name lookup)
+      if (this.settings.syncMedications || this.settings.syncMedicationLogs) {
         onProgress?.(t('progress.check_medications'))
         try {
           const medications = await this.dataService.getMedications()
@@ -252,9 +254,11 @@ export class SyncEngine {
           for (const med of medications) {
             this.medicationMap.set(med.id, med)
           }
-          const content = renderMedications(medications)
-          const path = this.vaultManager.getMedicationsPath()
-          report(await this.vaultManager.createOrUpdateFile(path, content))
+          if (this.settings.syncMedications) {
+            const content = renderMedications(medications)
+            const path = this.vaultManager.getMedicationsPath()
+            report(await this.vaultManager.createOrUpdateFile(path, content))
+          }
         } catch (e) {
           this.addError('medications_decrypted', 'all', e)
         }
