@@ -13,8 +13,6 @@ interface ChannelInfo {
   table: string
   channel: RealtimeChannel
   status: ChannelStatus | 'PENDING'
-  retryCount: number
-  retryTimer: ReturnType<typeof setTimeout> | null
   lastEventAt: number
 }
 
@@ -22,18 +20,19 @@ interface ChannelInfo {
  * Manages Supabase Realtime subscriptions for all relevant tables.
  * Uses 2-second debounce per table to avoid excessive syncs.
  *
- * Includes channel health monitoring and auto-reconnect logic
- * for iOS compatibility (background kill recovery).
+ * Relies on Supabase Realtime's built-in reconnection logic for
+ * transient WebSocket / channel errors. Only performs full reconnects
+ * as a fallback when channels stay unhealthy for an extended period.
  */
 export class RealtimeManager {
   private channels: ChannelInfo[] = []
   private debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
   private recoveryTimer: ReturnType<typeof setTimeout> | null = null
+  private fullReconnectCount = 0
   private readonly DEBOUNCE_MS = 2000
-  private readonly MAX_RETRIES = 3
-  private readonly BASE_RETRY_DELAY_MS = 2000
+  private readonly MAX_FULL_RECONNECTS = 5
+  private readonly BASE_RECOVERY_DELAY_MS = 15_000
   private readonly STALE_THRESHOLD_MS = 10 * 60 * 1000 // 10 min
-  private readonly RECOVERY_DELAY_MS = 30_000 // 30s full reconnect after all gave up
 
   constructor(
     private client: SupabaseClient,
@@ -134,7 +133,7 @@ export class RealtimeManager {
   }
 
   /**
-   * Unsubscribes from all channels and clears debounce/retry timers.
+   * Unsubscribes from all channels and clears debounce timers.
    */
   unsubscribeAll(): void {
     if (this.recoveryTimer) {
@@ -143,9 +142,6 @@ export class RealtimeManager {
     }
 
     for (const info of this.channels) {
-      if (info.retryTimer) {
-        clearTimeout(info.retryTimer)
-      }
       this.client.removeChannel(info.channel)
     }
     this.channels = []
@@ -158,10 +154,11 @@ export class RealtimeManager {
 
   /**
    * Full reconnect: tears down all channels and re-subscribes.
-   * Resets retry counters. Safe to call from outside (e.g. on app resume).
+   * Resets reconnect counter. Safe to call from outside (e.g. on app resume).
    */
   reconnectAll(): void {
     console.log('[FitAssistent] Realtime: reconnecting all channels')
+    this.fullReconnectCount = 0
     this.subscribeAll()
   }
 
@@ -202,7 +199,6 @@ export class RealtimeManager {
   private subscribeToTable(
     table: string,
     handler: (payload: RealtimePayload) => void,
-    retryCount = 0,
   ): void {
     const channel = this.client
       .channel(`fit-assistent-${table}`)
@@ -227,109 +223,105 @@ export class RealtimeManager {
       table,
       channel,
       status: 'PENDING',
-      retryCount,
-      retryTimer: null,
       lastEventAt: Date.now(),
     }
 
     this.channels.push(info)
 
-    // Subscribe with status callback for health tracking + auto-reconnect
     channel.subscribe((status: string, err?: Error) => {
+      const prevStatus = info.status
       info.status = status as ChannelStatus
       info.lastEventAt = Date.now()
 
       if (status === 'SUBSCRIBED') {
-        // Successfully connected — reset retry counter
-        info.retryCount = 0
+        this.fullReconnectCount = 0
         console.log(
           `[FitAssistent] Realtime: ${table} channel SUBSCRIBED`,
         )
       } else if (
-        status === 'CLOSED' ||
         status === 'CHANNEL_ERROR' ||
         status === 'TIMED_OUT'
       ) {
-        console.warn(
-          `[FitAssistent] Realtime: ${table} channel ${status}`,
-          err ?? '',
-        )
-        this.scheduleRetry(info, handler)
+        // Only log once per transition to avoid spamming the console
+        // (Supabase's built-in rejoin fires the callback repeatedly)
+        if (prevStatus !== status) {
+          console.warn(
+            `[FitAssistent] Realtime: ${table} channel ${status}`,
+            err?.message ?? '',
+          )
+        }
+        // Let Supabase's built-in rejoinTimer handle reconnection.
+        // Schedule a recovery check as fallback in case built-in
+        // reconnection cannot recover.
+        this.scheduleRecoveryCheck()
+      } else if (status === 'CLOSED') {
+        if (prevStatus !== 'CLOSED') {
+          console.warn(`[FitAssistent] Realtime: ${table} channel CLOSED`)
+        }
       }
     })
   }
 
   /**
-   * Schedules a retry for a failed channel with exponential backoff.
-   * Gives up after MAX_RETRIES until the next manual reconnectAll().
+   * Schedules a deferred check: if channels are still unhealthy after
+   * a delay, performs a full reconnect with exponential backoff.
+   * Only one check timer runs at a time — duplicate calls are no-ops.
    */
-  private scheduleRetry(
-    info: ChannelInfo,
-    handler: (payload: RealtimePayload) => void,
-  ): void {
-    // Clear any existing retry timer
-    if (info.retryTimer) {
-      clearTimeout(info.retryTimer)
-      info.retryTimer = null
-    }
+  private scheduleRecoveryCheck(): void {
+    if (this.recoveryTimer) return
 
-    if (info.retryCount >= this.MAX_RETRIES) {
+    if (this.fullReconnectCount >= this.MAX_FULL_RECONNECTS) {
       console.error(
-        `[FitAssistent] Realtime: ${info.table} channel gave up ` +
-          `after ${this.MAX_RETRIES} retries`,
+        `[FitAssistent] Realtime: exhausted ${this.MAX_FULL_RECONNECTS} ` +
+          `full reconnect attempts — giving up until next manual reconnect`,
       )
-      this.scheduleRecovery()
       return
     }
 
-    info.retryCount++
-    const delay = this.BASE_RETRY_DELAY_MS * Math.pow(2, info.retryCount - 1)
+    const delay =
+      this.BASE_RECOVERY_DELAY_MS *
+      Math.pow(2, Math.min(this.fullReconnectCount, 4))
 
     console.log(
-      `[FitAssistent] Realtime: ${info.table} retry ${info.retryCount}/${this.MAX_RETRIES} in ${delay}ms`,
-    )
-
-    info.retryTimer = setTimeout(() => {
-      info.retryTimer = null
-
-      // Remove the dead channel from Supabase
-      this.client.removeChannel(info.channel)
-
-      // Remove from our tracking array
-      const idx = this.channels.indexOf(info)
-      if (idx !== -1) {
-        this.channels.splice(idx, 1)
-      }
-
-      // Re-subscribe this single table (preserves retry count)
-      this.subscribeToTable(info.table, handler, info.retryCount)
-    }, delay)
-  }
-
-  /**
-   * Schedules a full reconnectAll() after RECOVERY_DELAY_MS.
-   * Only one recovery timer runs at a time — duplicate calls are no-ops.
-   */
-  private scheduleRecovery(): void {
-    if (this.recoveryTimer) return
-
-    const allGaveUp =
-      this.channels.length > 0 &&
-      this.channels.every(
-        (ch) => ch.retryCount >= this.MAX_RETRIES && !ch.retryTimer,
-      )
-
-    if (!allGaveUp) return
-
-    console.log(
-      `[FitAssistent] Realtime: all channels exhausted retries — ` +
-        `full reconnect in ${this.RECOVERY_DELAY_MS / 1000}s`,
+      `[FitAssistent] Realtime: recovery check scheduled in ${Math.round(delay / 1000)}s`,
     )
 
     this.recoveryTimer = setTimeout(() => {
       this.recoveryTimer = null
-      this.reconnectAll()
-    }, this.RECOVERY_DELAY_MS)
+
+      // Check if channels recovered on their own (via built-in rejoin)
+      const anySubscribed = this.channels.some(
+        (ch) => ch.status === 'SUBSCRIBED',
+      )
+      const allHealthy = this.channels.every(
+        (ch) => ch.status === 'SUBSCRIBED',
+      )
+
+      if (allHealthy) {
+        console.log(
+          '[FitAssistent] Realtime: all channels recovered — no action needed',
+        )
+        return
+      }
+
+      if (anySubscribed) {
+        console.log(
+          '[FitAssistent] Realtime: some channels recovered, ' +
+            'waiting for built-in reconnection to finish',
+        )
+        // Schedule another check since partial recovery is in progress
+        this.scheduleRecoveryCheck()
+        return
+      }
+
+      // No channels recovered → full reconnect
+      this.fullReconnectCount++
+      console.log(
+        `[FitAssistent] Realtime: no channels recovered — ` +
+          `full reconnect (${this.fullReconnectCount}/${this.MAX_FULL_RECONNECTS})`,
+      )
+      this.subscribeAll()
+    }, delay)
   }
 
   private debounce(key: string, fn: () => Promise<void>): void {
