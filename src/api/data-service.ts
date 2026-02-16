@@ -143,10 +143,11 @@ export class DataService {
     let query = this.client
       .from('mealprep_plans')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('start_date', { ascending: false })
 
     if (since) {
-      query = query.gt('created_at', new Date(since).toISOString())
+      const sinceDate = new Date(since).toISOString().split('T')[0]
+      query = query.gte('start_date', sinceDate)
     }
 
     const { data, error } = await query
@@ -235,7 +236,7 @@ export class DataService {
       .order('measured_at', { ascending: false })
 
     if (since) {
-      query = query.gt('created_at', new Date(since).toISOString())
+      query = query.gt('created_at', since)
     }
 
     const { data, error } = await query

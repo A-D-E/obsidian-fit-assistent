@@ -87,7 +87,7 @@ export interface MealPrepPlan {
   shopping_list: MealPrepShoppingItem[]
   status: 'planning' | 'active' | 'completed' | 'cancelled'
   feedback?: MealPrepFeedback
-  created_at: number
+  created_at?: number
 }
 
 export interface MealPrepDay {
