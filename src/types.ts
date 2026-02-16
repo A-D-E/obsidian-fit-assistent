@@ -88,7 +88,6 @@ export interface MealPrepPlan {
   status: 'planning' | 'active' | 'completed' | 'cancelled'
   feedback?: MealPrepFeedback
   created_at: number
-  updated_at: number
 }
 
 export interface MealPrepDay {

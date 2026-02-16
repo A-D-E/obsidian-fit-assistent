@@ -31,7 +31,7 @@ export class DataService {
       .order('created_at', { ascending: false })
 
     if (since) {
-      query = query.gt('created_at', since)
+      query = query.gt('created_at', new Date(since).toISOString())
     }
 
     const { data, error } = await query
@@ -146,7 +146,7 @@ export class DataService {
       .order('created_at', { ascending: false })
 
     if (since) {
-      query = query.gt('updated_at', since)
+      query = query.gt('created_at', new Date(since).toISOString())
     }
 
     const { data, error } = await query
@@ -206,7 +206,7 @@ export class DataService {
       .order('created_at', { ascending: false })
 
     if (since) {
-      query = query.gt('created_at', since)
+      query = query.gt('created_at', new Date(since).toISOString())
     }
 
     const { data, error } = await query
@@ -235,7 +235,7 @@ export class DataService {
       .order('measured_at', { ascending: false })
 
     if (since) {
-      query = query.gt('created_at', since)
+      query = query.gt('created_at', new Date(since).toISOString())
     }
 
     const { data, error } = await query
